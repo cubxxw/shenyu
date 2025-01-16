@@ -17,10 +17,6 @@
 
 package org.apache.shenyu.plugin.jwt;
 
-import io.jsonwebtoken.Jwt;
-import io.jsonwebtoken.JwtParser;
-import io.jsonwebtoken.JwtParserBuilder;
-import io.jsonwebtoken.Jwts;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shenyu.common.dto.RuleData;
 import org.apache.shenyu.common.dto.SelectorData;
@@ -33,16 +29,16 @@ import org.apache.shenyu.plugin.api.utils.WebFluxResultUtils;
 import org.apache.shenyu.plugin.base.AbstractShenyuPlugin;
 import org.apache.shenyu.plugin.base.utils.CacheKeyUtils;
 import org.apache.shenyu.plugin.jwt.config.JwtConfig;
-import org.apache.shenyu.plugin.jwt.exception.ThrowingFunction;
 import org.apache.shenyu.plugin.jwt.handle.JwtPluginDataHandler;
 import org.apache.shenyu.plugin.jwt.rule.JwtRuleHandle;
 import org.apache.shenyu.plugin.jwt.strategy.JwtConvertStrategy;
 import org.apache.shenyu.plugin.jwt.strategy.JwtConvertStrategyFactory;
+import org.apache.shenyu.plugin.jwt.strategy.JwtPayloadParseStrategy;
+import org.apache.shenyu.plugin.jwt.strategy.JwtPayloadParseStrategyFactory;
 import org.springframework.http.HttpHeaders;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.Objects;
 
@@ -67,7 +63,7 @@ public class JwtPlugin extends AbstractShenyuPlugin {
         }
         // compatible processing
         String finalAuthorization = compatible(token, authorization);
-        Map<String, Object> jwtBody = checkAuthorization(finalAuthorization, jwtConfig.getSecretKey());
+        Map<String, Object> jwtBody = parseJwtPayload(finalAuthorization, jwtConfig);
         if (Objects.isNull(jwtBody)) {
             Object error = ShenyuResultWrap.error(exchange, ShenyuResultEnum.ERROR_TOKEN);
             return WebFluxResultUtils.result(exchange, error);
@@ -118,29 +114,18 @@ public class JwtPlugin extends AbstractShenyuPlugin {
     }
 
     /**
-     * check Authorization.
+     * parse jwt payload.
      *
      * @param authorization the authorization after processing
-     * @param secretKey     secretKey of authorization
+     * @param jwtConfig     the jwt config
      * @return Map
      */
-    private Map<String, Object> checkAuthorization(final String authorization,
-                                                   final String secretKey) {
-
+    private Map<String, Object> parseJwtPayload(final String authorization,
+                                                final JwtConfig jwtConfig) {
         if (StringUtils.isEmpty(authorization)) {
             return null;
         }
-        JwtParserBuilder jwtParserBuilder = Jwts.parserBuilder();
-        JwtParser jwtParser = jwtParserBuilder.build();
-        if (jwtParser.isSigned(authorization)) {
-            jwtParserBuilder.setSigningKey(secretKey.getBytes(StandardCharsets.UTF_8));
-            JwtParser jwtParserExec = jwtParserBuilder.build();
-            Jwt jwt = ThrowingFunction.wrap(() -> jwtParserExec.parse(authorization));
-            if (jwt == null) {
-                return null;
-            }
-            return (Map<String, Object>) jwt.getBody();
-        }
-        return null;
+        JwtPayloadParseStrategy payloadParseStrategy = JwtPayloadParseStrategyFactory.newInstance(jwtConfig.getHandleType());
+        return payloadParseStrategy.parse(jwtConfig.getSecretKey(), authorization);
     }
 }

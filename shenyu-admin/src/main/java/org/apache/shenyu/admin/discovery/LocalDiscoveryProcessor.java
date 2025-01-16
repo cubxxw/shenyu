@@ -19,13 +19,12 @@ package org.apache.shenyu.admin.discovery;
 
 import org.apache.shenyu.admin.listener.DataChangedEvent;
 import org.apache.shenyu.admin.mapper.DiscoveryUpstreamMapper;
-import org.apache.shenyu.admin.mapper.ProxySelectorMapper;
 import org.apache.shenyu.admin.model.dto.DiscoveryHandlerDTO;
 import org.apache.shenyu.admin.model.dto.DiscoveryUpstreamDTO;
 import org.apache.shenyu.admin.model.dto.ProxySelectorDTO;
 import org.apache.shenyu.admin.model.entity.DiscoveryDO;
 import org.apache.shenyu.admin.model.entity.DiscoveryUpstreamDO;
-import org.apache.shenyu.admin.model.entity.ProxySelectorDO;
+import org.apache.shenyu.admin.model.event.discovery.DiscoveryStreamUpdatedEvent;
 import org.apache.shenyu.admin.transfer.DiscoveryTransfer;
 import org.apache.shenyu.common.dto.DiscoverySyncData;
 import org.apache.shenyu.common.dto.DiscoveryUpstreamData;
@@ -40,6 +39,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import static org.apache.shenyu.admin.model.enums.EventTypeEnum.LOCAL_DISCOVERY_UPSTREAM_UPDATE;
+
 /**
  * LocalDiscoveryProcessor.
  */
@@ -51,11 +52,8 @@ public class LocalDiscoveryProcessor implements DiscoveryProcessor, ApplicationE
 
     private final DiscoveryUpstreamMapper discoveryUpstreamMapper;
 
-    private final ProxySelectorMapper proxySelectorMapper;
-
-    public LocalDiscoveryProcessor(final DiscoveryUpstreamMapper discoveryUpstreamMapper, final ProxySelectorMapper proxySelectorMapper) {
+    public LocalDiscoveryProcessor(final DiscoveryUpstreamMapper discoveryUpstreamMapper) {
         this.discoveryUpstreamMapper = discoveryUpstreamMapper;
-        this.proxySelectorMapper = proxySelectorMapper;
     }
 
     @Override
@@ -83,6 +81,17 @@ public class LocalDiscoveryProcessor implements DiscoveryProcessor, ApplicationE
     }
 
     @Override
+    public void removeSelectorUpstream(final ProxySelectorDTO proxySelectorDTO) {
+        DiscoverySyncData discoverySyncData = new DiscoverySyncData();
+        discoverySyncData.setPluginName(proxySelectorDTO.getPluginName());
+        discoverySyncData.setSelectorId(proxySelectorDTO.getId());
+        discoverySyncData.setSelectorName(proxySelectorDTO.getName());
+        discoverySyncData.setNamespaceId(proxySelectorDTO.getNamespaceId());
+        DataChangedEvent dataChangedEvent = new DataChangedEvent(ConfigGroupEnum.DISCOVER_UPSTREAM, DataEventTypeEnum.DELETE, Collections.singletonList(discoverySyncData));
+        eventPublisher.publishEvent(dataChangedEvent);
+    }
+
+    @Override
     public void changeUpstream(final ProxySelectorDTO proxySelectorDTO, final List<DiscoveryUpstreamDTO> upstreamDTOS) {
         DiscoverySyncData discoverySyncData = new DiscoverySyncData();
         discoverySyncData.setPluginName(proxySelectorDTO.getPluginName());
@@ -90,8 +99,11 @@ public class LocalDiscoveryProcessor implements DiscoveryProcessor, ApplicationE
         discoverySyncData.setSelectorName(proxySelectorDTO.getName());
         List<DiscoveryUpstreamData> upstreamDataList = upstreamDTOS.stream().map(DiscoveryTransfer.INSTANCE::mapToData).collect(Collectors.toList());
         discoverySyncData.setUpstreamDataList(upstreamDataList);
+        discoverySyncData.setNamespaceId(proxySelectorDTO.getNamespaceId());
         DataChangedEvent dataChangedEvent = new DataChangedEvent(ConfigGroupEnum.DISCOVER_UPSTREAM, DataEventTypeEnum.UPDATE, Collections.singletonList(discoverySyncData));
         eventPublisher.publishEvent(dataChangedEvent);
+        DiscoveryStreamUpdatedEvent discoveryStreamUpdatedEvent = new DiscoveryStreamUpdatedEvent(discoverySyncData, LOCAL_DISCOVERY_UPSTREAM_UPDATE);
+        eventPublisher.publishEvent(discoveryStreamUpdatedEvent);
     }
 
     @Override
@@ -100,15 +112,15 @@ public class LocalDiscoveryProcessor implements DiscoveryProcessor, ApplicationE
     }
 
     @Override
-    public void fetchAll(final String discoveryHandlerId) {
-        List<DiscoveryUpstreamDO> discoveryUpstreamDOS = discoveryUpstreamMapper.selectByDiscoveryHandlerId(discoveryHandlerId);
-        ProxySelectorDO proxySelectorDO = proxySelectorMapper.selectByHandlerId(discoveryHandlerId);
+    public void fetchAll(final DiscoveryHandlerDTO discoveryHandlerDTO, final ProxySelectorDTO proxySelectorDTO) {
+        List<DiscoveryUpstreamDO> discoveryUpstreamDOS = discoveryUpstreamMapper.selectByDiscoveryHandlerId(discoveryHandlerDTO.getId());
         DiscoverySyncData discoverySyncData = new DiscoverySyncData();
-        discoverySyncData.setPluginName(proxySelectorDO.getPluginName());
-        discoverySyncData.setSelectorId(proxySelectorDO.getId());
-        discoverySyncData.setSelectorName(proxySelectorDO.getName());
+        discoverySyncData.setPluginName(proxySelectorDTO.getPluginName());
+        discoverySyncData.setSelectorId(proxySelectorDTO.getId());
+        discoverySyncData.setSelectorName(proxySelectorDTO.getName());
         List<DiscoveryUpstreamData> upstreamDataList = discoveryUpstreamDOS.stream().map(DiscoveryTransfer.INSTANCE::mapToData).collect(Collectors.toList());
         discoverySyncData.setUpstreamDataList(upstreamDataList);
+        discoverySyncData.setNamespaceId(proxySelectorDTO.getNamespaceId());
         DataChangedEvent dataChangedEvent = new DataChangedEvent(ConfigGroupEnum.DISCOVER_UPSTREAM, DataEventTypeEnum.UPDATE, Collections.singletonList(discoverySyncData));
         eventPublisher.publishEvent(dataChangedEvent);
     }

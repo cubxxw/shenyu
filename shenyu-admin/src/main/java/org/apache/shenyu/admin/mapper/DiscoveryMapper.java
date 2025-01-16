@@ -56,13 +56,30 @@ public interface DiscoveryMapper extends ExistProvider {
     List<DiscoveryDO> selectAll();
 
     /**
+     * selectAllByNamespaceId.
+     *
+     * @param namespaceId the namespaceId
+     * @return discoveryDOList
+     */
+    List<DiscoveryDO> selectAllByNamespaceId(String namespaceId);
+
+    /**
+     * selectAllByNamespaceIds.
+     *
+     * @param namespaceIds the namespaceIds
+     * @return discoveryDOList
+     */
+    List<DiscoveryDO> selectAllByNamespaceIds(List<String> namespaceIds);
+
+    /**
      * select discovery by plugin name and level.
      *
      * @param pluginName plugin name
      * @param level      level
+     * @param namespaceId namespaceId
      * @return {@linkplain DiscoveryDO}
      */
-    DiscoveryDO selectByPluginNameAndLevel(@Param("pluginName") String pluginName, @Param("level") String level);
+    DiscoveryDO selectByPluginNameAndLevelAndNamespaceId(@Param("pluginName") String pluginName, @Param("level") String level, @Param("namespaceId") String namespaceId);
 
     /**
      * insert discovery.
@@ -103,4 +120,14 @@ public interface DiscoveryMapper extends ExistProvider {
      * @return rows.
      */
     int delete(String id);
+
+    /**
+     * selectBySelectorNameAndPluginName.
+     *
+     * @param selectorName selectorName
+     * @param pluginName   pluginName
+     * @return DiscoveryDO
+     */
+    DiscoveryDO selectBySelectorNameAndPluginName(String selectorName, String pluginName);
+
 }

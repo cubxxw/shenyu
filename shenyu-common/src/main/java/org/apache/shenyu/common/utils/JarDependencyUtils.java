@@ -17,6 +17,7 @@
 
 package org.apache.shenyu.common.utils;
 
+import org.apache.shenyu.common.constant.AdminConstants;
 import org.apache.shenyu.common.exception.ShenyuException;
 import org.objectweb.asm.ClassReader;
 import org.objectweb.asm.Opcodes;
@@ -30,6 +31,7 @@ import org.slf4j.LoggerFactory;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.util.HashSet;
+import java.util.Objects;
 import java.util.Set;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipInputStream;
@@ -55,7 +57,7 @@ public class JarDependencyUtils {
         try (InputStream inputStream = new ByteArrayInputStream(jarBytes);
              ZipInputStream zipInputStream = new ZipInputStream(inputStream)) {
             ZipEntry entry;
-            while ((entry = zipInputStream.getNextEntry()) != null) {
+            while (Objects.nonNull(entry = zipInputStream.getNextEntry())) {
                 if (entry.getName().endsWith(".class")) {
                     ClassNode classNode = new ClassNode(Opcodes.ASM7);
                     ClassReader classReader = new ClassReader(zipInputStream);
@@ -79,7 +81,7 @@ public class JarDependencyUtils {
 
         } catch (Exception e) {
             LOG.error("get dependency tree error", e);
-            throw new ShenyuException(e);
+            throw new ShenyuException(AdminConstants.THE_PLUGIN_JAR_FILE_IS_NOT_CORRECT_OR_EXCEEDS_16_MB);
         }
     }
 

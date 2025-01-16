@@ -24,12 +24,14 @@ import com.google.common.base.Splitter;
 import com.google.common.collect.Lists;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shenyu.common.constant.Constants;
+import org.apache.shenyu.common.utils.AesUtils;
 import org.apache.shenyu.common.utils.GsonUtils;
 import org.apache.shenyu.register.client.api.FailbackRegistryRepository;
 import org.apache.shenyu.register.client.http.utils.RegisterUtils;
 import org.apache.shenyu.register.client.http.utils.RuntimeUtils;
 import org.apache.shenyu.register.common.config.ShenyuRegisterCenterConfig;
 import org.apache.shenyu.register.common.dto.ApiDocRegisterDTO;
+import org.apache.shenyu.register.common.dto.DiscoveryConfigRegisterDTO;
 import org.apache.shenyu.register.common.dto.MetaDataRegisterDTO;
 import org.apache.shenyu.register.common.dto.URIRegisterDTO;
 import org.apache.shenyu.register.common.enums.EventType;
@@ -86,13 +88,18 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
     public void init(final ShenyuRegisterCenterConfig config) {
         this.username = config.getProps().getProperty(Constants.USER_NAME);
         this.password = config.getProps().getProperty(Constants.PASS_WORD);
+        String secretKey = config.getProps().getProperty(Constants.AES_SECRET_KEY);
+        String secretIv = config.getProps().getProperty(Constants.AES_SECRET_IV);
+        if (StringUtils.isNotBlank(secretKey) && StringUtils.isNotBlank(secretIv)) {
+            this.password = AesUtils.cbcEncrypt(secretKey, secretIv, password);
+        }
         this.serverList = Lists.newArrayList(Splitter.on(",").split(config.getServerLists()));
         this.accessToken = Caffeine.newBuilder()
                 //see org.apache.shenyu.admin.config.properties.JwtProperties#expiredSeconds
                 .expireAfterWrite(24L, TimeUnit.HOURS)
-                .build(new CacheLoader<String, String>() {
+                .build(new CacheLoader<>() {
                     @Override
-                    public @Nullable String load(@NonNull final String server) throws Exception {
+                    public @Nullable String load(@NonNull final String server) {
                         try {
                             Optional<?> login = RegisterUtils.doLogin(username, password, server.concat(Constants.LOGIN_PATH));
                             return login.map(String::valueOf).orElse(null);
@@ -123,6 +130,15 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
         doUnregister(offlineDTO);
     }
     
+    @Override
+    public void sendHeartbeat(final URIRegisterDTO heartbeatDTO) {
+        if (RuntimeUtils.listenByOther(heartbeatDTO.getPort())) {
+            return;
+        }
+        heartbeatDTO.setEventType(EventType.HEARTBEAT);
+        doHeartbeat(heartbeatDTO, Constants.URI_PATH);
+    }
+    
     /**
      * doPersistApiDoc.
      *
@@ -150,7 +166,16 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
             doRegister(apiDocRegisterDTO, Constants.API_DOC_PATH, Constants.API_DOC_TYPE);
         }
     }
-    
+
+    /**
+     * doPersistDiscoveryConfig.
+     *
+     * @param discoveryConfigRegisterDTO discoveryConfigRegisterDTO
+     */
+    public void doPersistDiscoveryConfig(final DiscoveryConfigRegisterDTO discoveryConfigRegisterDTO) {
+        doRegister(discoveryConfigRegisterDTO, Constants.DISCOVERY_CONFIG_PATH, Constants.DISCOVERY_CONFIG_TYPE);
+    }
+
     private <T> void doRegister(final T t, final String path, final String type) {
         int i = 0;
         for (String server : serverList) {
@@ -165,6 +190,26 @@ public class HttpClientRegisterRepository extends FailbackRegistryRepository {
                 // considering the situation of multiple clusters, we should continue to execute here
             } catch (Exception e) {
                 LOGGER.error("Register admin url :{} is fail, will retry. cause:{}", server, e.getMessage());
+                if (i == serverList.size()) {
+                    throw new RuntimeException(e);
+                }
+            }
+        }
+    }
+
+    private <T> void doHeartbeat(final T t, final String path) {
+        int i = 0;
+        for (String server : serverList) {
+            i++;
+            String concat = server.concat(path);
+            try {
+                String accessToken = this.accessToken.get(server);
+                if (StringUtils.isBlank(accessToken)) {
+                    throw new NullPointerException("accessToken is null");
+                }
+                RegisterUtils.doHeartBeat(GsonUtils.getInstance().toJson(t), concat, Constants.HEARTBEAT, accessToken);
+            } catch (Exception e) {
+                LOGGER.error("HeartBeat admin url :{} is fail, will retry.", server, e);
                 if (i == serverList.size()) {
                     throw new RuntimeException(e);
                 }

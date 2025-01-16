@@ -17,30 +17,42 @@
 
 package org.apache.shenyu.admin.service.impl;
 
+import com.google.common.collect.Lists;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.shenyu.admin.discovery.DiscoveryProcessor;
 import org.apache.shenyu.admin.discovery.DiscoveryProcessorHolder;
 import org.apache.shenyu.admin.mapper.DiscoveryHandlerMapper;
 import org.apache.shenyu.admin.mapper.DiscoveryMapper;
-import org.apache.shenyu.admin.mapper.DiscoveryUpstreamMapper;
-import org.apache.shenyu.admin.mapper.ProxySelectorMapper;
 import org.apache.shenyu.admin.mapper.DiscoveryRelMapper;
+import org.apache.shenyu.admin.mapper.DiscoveryUpstreamMapper;
+import org.apache.shenyu.admin.mapper.PluginMapper;
+import org.apache.shenyu.admin.mapper.ProxySelectorMapper;
 import org.apache.shenyu.admin.mapper.SelectorMapper;
 import org.apache.shenyu.admin.model.dto.DiscoveryUpstreamDTO;
+import org.apache.shenyu.admin.model.dto.ProxySelectorDTO;
 import org.apache.shenyu.admin.model.entity.DiscoveryDO;
 import org.apache.shenyu.admin.model.entity.DiscoveryHandlerDO;
+import org.apache.shenyu.admin.model.entity.DiscoveryRelDO;
 import org.apache.shenyu.admin.model.entity.DiscoveryUpstreamDO;
 import org.apache.shenyu.admin.model.entity.ProxySelectorDO;
-import org.apache.shenyu.admin.model.entity.DiscoveryRelDO;
 import org.apache.shenyu.admin.model.entity.SelectorDO;
+import org.apache.shenyu.admin.model.result.ConfigImportResult;
+import org.apache.shenyu.admin.model.vo.DiscoveryUpstreamVO;
 import org.apache.shenyu.admin.service.DiscoveryUpstreamService;
+import org.apache.shenyu.admin.service.configs.ConfigsImportContext;
 import org.apache.shenyu.admin.transfer.DiscoveryTransfer;
 import org.apache.shenyu.admin.utils.ShenyuResultMessage;
 import org.apache.shenyu.common.dto.DiscoverySyncData;
 import org.apache.shenyu.common.dto.DiscoveryUpstreamData;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -56,6 +68,8 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
 
     private final DiscoveryMapper discoveryMapper;
 
+    private final PluginMapper pluginMapper;
+
     private final SelectorMapper selectorMapper;
 
     private final DiscoveryProcessorHolder discoveryProcessorHolder;
@@ -66,6 +80,7 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
                                         final DiscoveryMapper discoveryMapper,
                                         final DiscoveryRelMapper discoveryRelMapper,
                                         final SelectorMapper selectorMapper,
+                                        final PluginMapper pluginMapper,
                                         final DiscoveryProcessorHolder discoveryProcessorHolder) {
         this.discoveryUpstreamMapper = discoveryUpstreamMapper;
         this.discoveryProcessorHolder = discoveryProcessorHolder;
@@ -74,7 +89,7 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
         this.discoveryRelMapper = discoveryRelMapper;
         this.selectorMapper = selectorMapper;
         this.proxySelectorMapper = proxySelectorMapper;
-
+        this.pluginMapper = pluginMapper;
     }
 
     /**
@@ -88,6 +103,33 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
 
         return StringUtils.hasLength(discoveryUpstreamDTO.getId())
                 ? update(discoveryUpstreamDTO) : create(discoveryUpstreamDTO);
+    }
+
+    @Override
+    @Transactional
+    public int updateBatch(final String discoveryHandlerId, final List<DiscoveryUpstreamDTO> discoveryUpstreamDTOList) {
+        discoveryUpstreamMapper.deleteByDiscoveryHandlerId(discoveryHandlerId);
+        for (DiscoveryUpstreamDTO discoveryUpstreamDTO : discoveryUpstreamDTOList) {
+            discoveryUpstreamDTO.setId(null);
+            DiscoveryUpstreamDO discoveryUpstreamDO = DiscoveryUpstreamDO.buildDiscoveryUpstreamDO(discoveryUpstreamDTO);
+            discoveryUpstreamDO.setDiscoveryHandlerId(discoveryHandlerId);
+            discoveryUpstreamMapper.insert(discoveryUpstreamDO);
+        }
+        this.fetchAll(discoveryHandlerId);
+        return 0;
+    }
+
+    @Override
+    public void nativeCreateOrUpdate(final DiscoveryUpstreamDTO discoveryUpstreamDTO) {
+        DiscoveryUpstreamDO discoveryUpstreamDO = DiscoveryUpstreamDO.buildDiscoveryUpstreamDO(discoveryUpstreamDTO);
+        if (StringUtils.hasLength(discoveryUpstreamDTO.getId())) {
+            discoveryUpstreamMapper.updateSelective(discoveryUpstreamDO);
+        } else {
+            DiscoveryUpstreamDO existingRecord = discoveryUpstreamMapper.selectByDiscoveryHandlerIdAndUrl(discoveryUpstreamDO.getDiscoveryHandlerId(), discoveryUpstreamDO.getUrl());
+            if (Objects.isNull(existingRecord)) {
+                discoveryUpstreamMapper.insert(discoveryUpstreamDO);
+            }
+        }
     }
 
     /**
@@ -128,6 +170,32 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
         }).collect(Collectors.toList());
     }
 
+    @Override
+    public List<DiscoveryUpstreamVO> listAllData() {
+        return discoveryUpstreamMapper
+                .selectAll()
+                .stream()
+                .map(DiscoveryTransfer.INSTANCE::mapToVo)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<DiscoveryUpstreamVO> listAllDataByNamespaceId(final String namespaceId) {
+        return discoveryUpstreamMapper
+                .selectByNamespaceId(namespaceId)
+                .stream()
+                .map(DiscoveryTransfer.INSTANCE::mapToVo)
+                .collect(Collectors.toList());
+    }
+    
+    @Override
+    public void refreshBySelectorId(final String selectorId) {
+        DiscoveryHandlerDO discoveryHandlerDO = discoveryHandlerMapper.selectBySelectorId(selectorId);
+        if (Objects.nonNull(discoveryHandlerDO)) {
+            fetchAll(discoveryHandlerDO.getId());
+        }
+    }
+
     /**
      * create.
      *
@@ -154,14 +222,133 @@ public class DiscoveryUpstreamServiceImpl implements DiscoveryUpstreamService {
         return ShenyuResultMessage.UPDATE_SUCCESS;
     }
 
+    @Override
+    public List<DiscoveryUpstreamData> findBySelectorId(final String selectorId) {
+        DiscoveryHandlerDO discoveryHandlerDO = discoveryHandlerMapper.selectBySelectorId(selectorId);
+        if (Objects.isNull(discoveryHandlerDO)) {
+            return Collections.emptyList();
+        }
+        List<DiscoveryUpstreamDO> discoveryUpstreamDOS = discoveryUpstreamMapper.selectByDiscoveryHandlerId(discoveryHandlerDO.getId());
+        return discoveryUpstreamDOS.stream().map(DiscoveryTransfer.INSTANCE::mapToData).collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void deleteBySelectorIdAndUrl(final String selectorId, final String url) {
+        DiscoveryHandlerDO discoveryHandlerDO = discoveryHandlerMapper.selectBySelectorId(selectorId);
+        if (Objects.nonNull(discoveryHandlerDO)) {
+            discoveryUpstreamMapper.deleteByUrl(discoveryHandlerDO.getId(), url);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public void changeStatusBySelectorIdAndUrl(final String selectorId, final String url, final Boolean enabled) {
+        DiscoveryHandlerDO discoveryHandlerDO = discoveryHandlerMapper.selectBySelectorId(selectorId);
+        if (Objects.nonNull(discoveryHandlerDO)) {
+            discoveryUpstreamMapper.updateStatusByUrl(discoveryHandlerDO.getId(), url, enabled ? 0 : 1);
+        }
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ConfigImportResult importData(final List<DiscoveryUpstreamDTO> discoveryUpstreamList) {
+        if (CollectionUtils.isEmpty(discoveryUpstreamList)) {
+            return ConfigImportResult.success();
+        }
+        int successCount = 0;
+        StringBuilder errorMsgBuilder = new StringBuilder();
+        Map<String, List<DiscoveryUpstreamDO>> discoveryHandlerUpstreamMap = discoveryUpstreamMapper
+                .selectAll()
+                .stream()
+                .collect(Collectors.groupingBy(DiscoveryUpstreamDO::getDiscoveryHandlerId));
+        for (DiscoveryUpstreamDTO discoveryUpstreamDTO : discoveryUpstreamList) {
+            String discoveryHandlerId = discoveryUpstreamDTO.getDiscoveryHandlerId();
+            String url = discoveryUpstreamDTO.getUrl();
+            Set<String> existsUpstreamUrlSet = discoveryHandlerUpstreamMap
+                    .getOrDefault(discoveryHandlerId, Lists.newArrayList())
+                    .stream()
+                    .map(DiscoveryUpstreamDO::getUrl)
+                    .collect(Collectors.toSet());
+            if (existsUpstreamUrlSet.contains(url)) {
+                errorMsgBuilder
+                        .append(url)
+                        .append(",");
+                continue;
+            }
+            discoveryUpstreamDTO.setId(null);
+            DiscoveryUpstreamDO discoveryUpstreamDO = DiscoveryUpstreamDO.buildDiscoveryUpstreamDO(discoveryUpstreamDTO);
+            discoveryUpstreamMapper.insert(discoveryUpstreamDO);
+            successCount++;
+        }
+        if (StringUtils.hasLength(errorMsgBuilder)) {
+            errorMsgBuilder.setLength(errorMsgBuilder.length() - 1);
+            return ConfigImportResult
+                    .fail(successCount, "import fail discovery upstream: " + errorMsgBuilder);
+        }
+        return ConfigImportResult.success(successCount);
+    }
+    
+    @Override
+    public ConfigImportResult importData(final String namespace, final List<DiscoveryUpstreamDTO> discoveryUpstreamList, final ConfigsImportContext context) {
+        if (CollectionUtils.isEmpty(discoveryUpstreamList)) {
+            return ConfigImportResult.success();
+        }
+        Map<String, String> discoveryHandlerIdMapping = context.getDiscoveryHandlerIdMapping();
+        int successCount = 0;
+        StringBuilder errorMsgBuilder = new StringBuilder();
+        Map<String, List<DiscoveryUpstreamDO>> discoveryHandlerUpstreamMap = discoveryUpstreamMapper
+                .selectByNamespaceId(namespace)
+                .stream()
+                .collect(Collectors.groupingBy(DiscoveryUpstreamDO::getDiscoveryHandlerId));
+        for (DiscoveryUpstreamDTO discoveryUpstreamDTO : discoveryUpstreamList) {
+            String discoveryHandlerId = discoveryUpstreamDTO.getDiscoveryHandlerId();
+            String url = discoveryUpstreamDTO.getUrl();
+            Set<String> existsUpstreamUrlSet = discoveryHandlerUpstreamMap
+                    .getOrDefault(discoveryHandlerId, Lists.newArrayList())
+                    .stream()
+                    .map(DiscoveryUpstreamDO::getUrl)
+                    .collect(Collectors.toSet());
+            if (existsUpstreamUrlSet.contains(url)) {
+                errorMsgBuilder
+                        .append(url)
+                        .append(",");
+                continue;
+            }
+            discoveryUpstreamDTO.setNamespaceId(namespace);
+            discoveryUpstreamDTO.setId(null);
+            discoveryUpstreamDTO.setDiscoveryHandlerId(discoveryHandlerIdMapping.get(discoveryUpstreamDTO.getDiscoveryHandlerId()));
+            DiscoveryUpstreamDO discoveryUpstreamDO = DiscoveryUpstreamDO.buildDiscoveryUpstreamDO(discoveryUpstreamDTO);
+            discoveryUpstreamMapper.insert(discoveryUpstreamDO);
+            successCount++;
+        }
+        if (StringUtils.hasLength(errorMsgBuilder)) {
+            errorMsgBuilder.setLength(errorMsgBuilder.length() - 1);
+            return ConfigImportResult
+                    .fail(successCount, "import fail discovery upstream: " + errorMsgBuilder);
+        }
+        return ConfigImportResult.success(successCount);
+    }
+    
     private void fetchAll(final String discoveryHandlerId) {
         List<DiscoveryUpstreamDO> discoveryUpstreamDOS = discoveryUpstreamMapper.selectByDiscoveryHandlerId(discoveryHandlerId);
         DiscoveryHandlerDO discoveryHandlerDO = discoveryHandlerMapper.selectById(discoveryHandlerId);
         ProxySelectorDO proxySelectorDO = proxySelectorMapper.selectByHandlerId(discoveryHandlerId);
+        ProxySelectorDTO proxySelectorDTO;
+        if (Objects.isNull(proxySelectorDO)) {
+            SelectorDO selectorDO = selectorMapper.selectByDiscoveryHandlerId(discoveryHandlerDO.getId());
+            proxySelectorDTO = new ProxySelectorDTO();
+            proxySelectorDTO.setId(selectorDO.getId());
+            proxySelectorDTO.setPluginName(pluginMapper.selectById(selectorDO.getPluginId()).getName());
+            proxySelectorDTO.setName(selectorDO.getName());
+            proxySelectorDTO.setNamespaceId(selectorDO.getNamespaceId());
+        } else {
+            proxySelectorDTO = DiscoveryTransfer.INSTANCE.mapToDTO(proxySelectorDO);
+        }
         DiscoveryDO discoveryDO = discoveryMapper.selectById(discoveryHandlerDO.getDiscoveryId());
         List<DiscoveryUpstreamDTO> collect = discoveryUpstreamDOS.stream().map(DiscoveryTransfer.INSTANCE::mapToDTO).collect(Collectors.toList());
         DiscoveryProcessor discoveryProcessor = discoveryProcessorHolder.chooseProcessor(discoveryDO.getType());
-        discoveryProcessor.changeUpstream(DiscoveryTransfer.INSTANCE.mapToDTO(proxySelectorDO), collect);
+        discoveryProcessor.changeUpstream(proxySelectorDTO, collect);
     }
 
 }

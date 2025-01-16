@@ -37,8 +37,10 @@ public final class ShutdownHookManager {
 
     private static final Logger LOG = LoggerFactory.getLogger(ShutdownHookManager.class);
 
+    private static String hookName = "ShenyuClientShutdownHook";
+
     private final Set<HookEntry> hooks =
-            Collections.synchronizedSet(new HashSet<HookEntry>());
+            Collections.synchronizedSet(new HashSet<>());
 
     private final AtomicBoolean shutdownInProgress = new AtomicBoolean(false);
 
@@ -57,8 +59,9 @@ public final class ShutdownHookManager {
                             LOG.error(ex.getMessage(), ex);
                         }
                     }
-                })
+                }, getHookName())
         );
+        LOG.info("Add hook {}", getHookName());
     }
 
     /**
@@ -79,13 +82,11 @@ public final class ShutdownHookManager {
     List<Runnable> getShutdownHooksInOrder() {
         List<HookEntry> list;
         synchronized (MGR.hooks) {
-            list = new ArrayList<HookEntry>(MGR.hooks);
+            list = new ArrayList<>(MGR.hooks);
         }
-        Collections.sort(list, (o1, o2) -> o2.priority - o1.priority);
-        List<Runnable> ordered = new ArrayList<Runnable>();
-        for (HookEntry entry : list) {
-            ordered.add(entry.hook);
-        }
+        list.sort((o1, o2) -> o2.priority - o1.priority);
+        List<Runnable> ordered = new ArrayList<>();
+        list.forEach(entry -> ordered.add(entry.hook));
         return ordered;
     }
 
@@ -163,6 +164,22 @@ public final class ShutdownHookManager {
     }
 
     /**
+     * Returns client shutdown hook name.
+     *
+     * @return client shutdown hook name
+     */
+    public static String getHookName() {
+        return hookName;
+    }
+
+    /**
+     * clear client shutdown hook name.
+     */
+    public static void clearHookName() {
+        hookName = null;
+    }
+
+    /**
      * Private structure to store ShutdownHook and its priority.
      */
     private static class HookEntry {
@@ -181,7 +198,7 @@ public final class ShutdownHookManager {
             if (this == o) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (Objects.isNull(o) || getClass() != o.getClass()) {
                 return false;
             }
             HookEntry hookEntry = (HookEntry) o;

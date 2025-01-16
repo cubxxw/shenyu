@@ -81,6 +81,11 @@ public class WebSocketPlugin extends AbstractShenyuPlugin {
         this.webSocketClient = webSocketClient;
         this.webSocketService = webSocketService;
     }
+    
+    @Override
+    protected String getRawPath(final ServerWebExchange exchange) {
+        return RequestUrlUtils.getRewrittenRawPath(exchange);
+    }
 
     @Override
     protected Mono<Void> doExecute(final ServerWebExchange exchange, final ShenyuPluginChain chain, final SelectorData selector, final RuleData rule) {
@@ -157,23 +162,23 @@ public class WebSocketPlugin extends AbstractShenyuPlugin {
             case 1011:
                 return closeStatus;
             case 1004:
-                // Should not be used in a close frame
-                // RESERVED;
+            // Should not be used in a close frame
+            // RESERVED;
             case 1005:
-                // Should not be used in a close frame
-                // return CloseStatus.NO_STATUS_CODE;
+            // Should not be used in a close frame
+            // return CloseStatus.NO_STATUS_CODE;
             case 1006:
-                // Should not be used in a close frame
-                // return CloseStatus.NO_CLOSE_FRAME;
+            // Should not be used in a close frame
+            // return CloseStatus.NO_CLOSE_FRAME;
             case 1012:
-                // Not in RFC6455
-                // return CloseStatus.SERVICE_RESTARTED;
+            // Not in RFC6455
+            // return CloseStatus.SERVICE_RESTARTED;
             case 1013:
-                // Not in RFC6455
-                // return CloseStatus.SERVICE_OVERLOAD;
+            // Not in RFC6455
+            // return CloseStatus.SERVICE_OVERLOAD;
             case 1015:
-                // Should not be used in a close frame
-                // return CloseStatus.TLS_HANDSHAKE_FAILURE;
+            // Should not be used in a close frame
+            // return CloseStatus.TLS_HANDSHAKE_FAILURE;
             default:
                 return CloseStatus.PROTOCOL_ERROR;
         }

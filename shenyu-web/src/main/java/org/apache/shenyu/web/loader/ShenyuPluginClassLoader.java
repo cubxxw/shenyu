@@ -27,7 +27,9 @@ import org.springframework.beans.factory.support.GenericBeanDefinition;
 import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 
+import java.io.ByteArrayInputStream;
 import java.io.Closeable;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.util.List;
 import java.util.ArrayList;
@@ -51,6 +53,8 @@ public final class ShenyuPluginClassLoader extends ClassLoader implements Closea
     private final ReentrantLock lock = new ReentrantLock();
 
     private final Map<String, Class<?>> classCache = new ConcurrentHashMap<>();
+
+    private final Map<String, byte[]> resourceCache = new ConcurrentHashMap<>();
 
     private final PluginJarParser.PluginJar pluginJar;
 
@@ -97,17 +101,31 @@ public final class ShenyuPluginClassLoader extends ClassLoader implements Closea
     }
 
     @Override
+    public InputStream getResourceAsStream(final String name) {
+        byte[] cacheByte = resourceCache.get(name);
+        if (Objects.nonNull(cacheByte)) {
+            return new ByteArrayInputStream(cacheByte);
+        }
+        byte[] bytes = pluginJar.getResourceMap().get(name);
+        if (Objects.nonNull(bytes)) {
+            resourceCache.put(name, bytes);
+            return new ByteArrayInputStream(bytes);
+        }
+        return super.getResourceAsStream(name);
+    }
+
+    @Override
     protected Class<?> findClass(final String name) throws ClassNotFoundException {
         if (ability(name)) {
             return this.getParent().loadClass(name);
         }
         Class<?> clazz = classCache.get(name);
-        if (clazz != null) {
+        if (Objects.nonNull(clazz)) {
             return clazz;
         }
         synchronized (this) {
             clazz = classCache.get(name);
-            if (clazz == null) {
+            if (Objects.isNull(clazz)) {
                 // support base64Jar
                 if (pluginJar.getClazzMap().containsKey(name) && !checkExistence(name)) {
                     byte[] bytes = pluginJar.getClazzMap().get(name);
@@ -130,12 +148,16 @@ public final class ShenyuPluginClassLoader extends ClassLoader implements Closea
 
     private <T> T getOrCreateSpringBean(final String className) throws ClassNotFoundException, IllegalAccessException, InstantiationException {
         if (SpringBeanUtils.getInstance().existBean(className)) {
-            return SpringBeanUtils.getInstance().getBeanByClassName(className);
+            T inst = SpringBeanUtils.getInstance().getBeanByClassName(className);
+            // if the class is loaded by other classloader, then reload it
+            if (!isLoadedByOtherClassLoader(inst)) {
+                return inst;
+            }
         }
         lock.lock();
         try {
             T inst = SpringBeanUtils.getInstance().getBeanByClassName(className);
-            if (Objects.isNull(inst)) {
+            if (Objects.isNull(inst) || isLoadedByOtherClassLoader(inst)) {
                 Class<?> clazz = Class.forName(className, false, this);
                 //Exclude ShenyuPlugin subclass and PluginDataHandler subclass
                 // without adding @Component @Service annotation
@@ -159,6 +181,17 @@ public final class ShenyuPluginClassLoader extends ClassLoader implements Closea
         } finally {
             lock.unlock();
         }
+    }
+
+    /**
+     * whether the class is loaded by other classloader.
+     *
+     * @param inst instance
+     * @param <T>  the type parameter
+     * @return boolean
+     */
+    private <T> boolean isLoadedByOtherClassLoader(final T inst) {
+        return !inst.getClass().getClassLoader().equals(this);
     }
 
     private ShenyuLoaderResult buildResult(final Object instance) {

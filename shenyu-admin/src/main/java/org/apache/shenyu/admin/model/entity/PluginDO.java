@@ -19,10 +19,10 @@ package org.apache.shenyu.admin.model.entity;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shenyu.admin.model.dto.PluginDTO;
-import org.apache.shenyu.common.exception.ShenyuException;
+import org.apache.shenyu.admin.model.vo.NamespacePluginVO;
 import org.apache.shenyu.common.utils.UUIDUtils;
+import org.apache.shiro.codec.Base64;
 
-import java.io.IOException;
 import java.sql.Timestamp;
 import java.util.Arrays;
 import java.util.Objects;
@@ -217,12 +217,38 @@ public final class PluginDO extends BaseDO {
                 pluginDO.setId(item.getId());
             }
             if (Objects.nonNull(item.getFile())) {
-                try {
-                    pluginDO.setPluginJar(item.getFile().getBytes());
-                } catch (IOException e) {
-                    throw new ShenyuException(e);
-                }
+                pluginDO.setPluginJar(Base64.decode(item.getFile()));
+            }
+            return pluginDO;
+        }).orElse(null);
+    }
 
+    /**
+     * build pluginDO.
+     *
+     * @param namespacePluginVO {@linkplain NamespacePluginVO}
+     * @return {@linkplain PluginDO}
+     */
+    public static PluginDO buildPluginDO(final NamespacePluginVO namespacePluginVO) {
+        return Optional.ofNullable(namespacePluginVO).map(item -> {
+            Timestamp currentTime = new Timestamp(System.currentTimeMillis());
+            PluginDO pluginDO = PluginDO.builder()
+                    .name(item.getName())
+                    .config(item.getConfig())
+                    .enabled(item.getEnabled())
+                    .role(item.getRole())
+                    .sort(item.getSort())
+                    .dateUpdated(currentTime)
+                    .build();
+
+            if (StringUtils.isEmpty(item.getId())) {
+                pluginDO.setId(UUIDUtils.getInstance().generateShortUuid());
+                pluginDO.setDateCreated(currentTime);
+            } else {
+                pluginDO.setId(item.getId());
+            }
+            if (Objects.nonNull(item.getFile())) {
+                pluginDO.setPluginJar(Base64.decode(item.getFile()));
             }
             return pluginDO;
         }).orElse(null);

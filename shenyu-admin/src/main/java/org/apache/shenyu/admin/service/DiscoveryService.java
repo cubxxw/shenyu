@@ -18,7 +18,11 @@
 package org.apache.shenyu.admin.service;
 
 import org.apache.shenyu.admin.model.dto.DiscoveryDTO;
+import org.apache.shenyu.admin.model.dto.DiscoveryHandlerDTO;
+import org.apache.shenyu.admin.model.result.ConfigImportResult;
 import org.apache.shenyu.admin.model.vo.DiscoveryVO;
+import org.apache.shenyu.admin.service.configs.ConfigsImportContext;
+import org.apache.shenyu.register.common.dto.DiscoveryConfigRegisterDTO;
 
 import java.util.List;
 
@@ -36,9 +40,10 @@ public interface DiscoveryService {
      *
      * @param pluginName plugin name
      * @param level      level
+     * @param namespaceId namespaceId
      * @return the discovery
      */
-    DiscoveryVO discovery(String pluginName, String level);
+    DiscoveryVO discovery(String pluginName, String level, String namespaceId);
 
     /**
      * Create or update string.
@@ -47,6 +52,18 @@ public interface DiscoveryService {
      * @return the string
      */
     DiscoveryVO createOrUpdate(DiscoveryDTO discoveryDTO);
+
+
+    /**
+     * registerDiscoveryConfig.
+     * <p>
+     * shenyu-client create discovery .
+     * </p>
+     *
+     * @param discoveryConfigRegisterDTO discoveryConfigRegisterDTO
+     */
+    void registerDiscoveryConfig(DiscoveryConfigRegisterDTO discoveryConfigRegisterDTO);
+
 
     /**
      * delete by id.
@@ -60,4 +77,63 @@ public interface DiscoveryService {
      * syncData.
      */
     void syncData();
+
+    /**
+     * Sync data by namespaceId.
+     *
+     * @param namespaceId the namespaceId
+     */
+    void syncDataByNamespaceId(String namespaceId);
+
+    /**
+     * list all vo.
+     *
+     * @return discovery vo
+     */
+    List<DiscoveryVO> listAllData();
+
+    /**
+     * list all vo.
+     *
+     * @param namespaceId namespaceId
+     * @return discovery vo
+     */
+    List<DiscoveryVO> listAllDataByNamespaceId(String namespaceId);
+
+    /**
+     * findDiscoveryHandlerBySelectorId.
+     *
+     * @param selectorId selectorId
+     * @return DiscoveryHandlerDTO
+     */
+    DiscoveryHandlerDTO findDiscoveryHandlerBySelectorId(String selectorId);
+
+
+    /**
+     * registerDefaultDiscovery.
+     *
+     * @param selectorId selectorId
+     * @param pluginName pluginName
+     * @param namespaceId namespaceId
+     * @return discoveryHandlerId
+     */
+    String registerDefaultDiscovery(String selectorId, String pluginName, String namespaceId);
+
+    /**
+     * Import discovery data list.
+     *
+     * @param discoveryList the discovery data
+     * @return config import result
+     */
+    ConfigImportResult importData(List<DiscoveryDTO> discoveryList);
+
+    /**
+     * Import discovery data list.
+     *
+     * @param namespace the namespace
+     * @param discoveryList the discovery data
+     * @param context import context
+     * @return config import result
+     */
+    ConfigImportResult importData(String namespace, List<DiscoveryDTO> discoveryList, ConfigsImportContext context);
 }
