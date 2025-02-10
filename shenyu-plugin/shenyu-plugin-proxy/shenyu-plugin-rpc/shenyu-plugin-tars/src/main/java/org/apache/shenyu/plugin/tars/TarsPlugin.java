@@ -30,6 +30,7 @@ import org.apache.shenyu.plugin.api.ShenyuPluginChain;
 import org.apache.shenyu.plugin.api.context.ShenyuContext;
 import org.apache.shenyu.plugin.api.result.ShenyuResultEnum;
 import org.apache.shenyu.plugin.api.result.ShenyuResultWrap;
+import org.apache.shenyu.plugin.api.utils.RequestUrlUtils;
 import org.apache.shenyu.plugin.api.utils.WebFluxResultUtils;
 import org.apache.shenyu.plugin.base.AbstractShenyuPlugin;
 import org.apache.shenyu.plugin.tars.cache.ApplicationConfigCache;
@@ -43,8 +44,8 @@ import reactor.core.publisher.Mono;
 
 import java.lang.reflect.Method;
 import java.util.Objects;
-import java.util.Random;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * The tars plugin.
@@ -53,17 +54,20 @@ public class TarsPlugin extends AbstractShenyuPlugin {
 
     private static final Logger LOG = LoggerFactory.getLogger(TarsPlugin.class);
 
-    private static final Random RANDOM = new Random();
+    @Override
+    protected String getRawPath(final ServerWebExchange exchange) {
+        return RequestUrlUtils.getRewrittenRawPath(exchange);
+    }
 
     @Override
     @SuppressWarnings({"unchecked", "rawtypes"})
     protected Mono<Void> doExecute(final ServerWebExchange exchange, final ShenyuPluginChain chain, final SelectorData selector, final RuleData rule) {
         String body = exchange.getAttribute(Constants.PARAM_TRANSFORM);
         ShenyuContext shenyuContext = exchange.getAttribute(Constants.CONTEXT);
-        assert shenyuContext != null;
+        assert Objects.nonNull(shenyuContext);
         MetaData metaData = exchange.getAttribute(Constants.META_DATA);
         if (!checkMetaData(metaData)) {
-            assert metaData != null;
+            assert Objects.nonNull(metaData);
             LOG.error(" path is :{}, meta data have error.... {}", shenyuContext.getPath(), metaData);
             exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
             Object error = ShenyuResultWrap.error(exchange, ShenyuResultEnum.META_DATA_ERROR);
@@ -75,7 +79,7 @@ public class TarsPlugin extends AbstractShenyuPlugin {
             return WebFluxResultUtils.result(exchange, error);
         }
         TarsInvokePrxList tarsInvokePrxList = ApplicationConfigCache.getInstance().get(metaData.getPath());
-        int index = RANDOM.nextInt(tarsInvokePrxList.getTarsInvokePrxList().size());
+        int index = ThreadLocalRandom.current().nextInt(tarsInvokePrxList.getTarsInvokePrxList().size());
         Object prx = tarsInvokePrxList.getTarsInvokePrxList().get(index).getInvokePrx();
         Method method = tarsInvokePrxList.getMethod();
         CompletableFuture future;
@@ -89,12 +93,13 @@ public class TarsPlugin extends AbstractShenyuPlugin {
             return WebFluxResultUtils.result(exchange, error);
         }
         return Mono.fromFuture(future.thenApply(ret -> {
-            if (Objects.isNull(ret)) {
-                ret = Constants.TARS_RPC_RESULT_EMPTY;
+            Object result = ret;
+            if (Objects.isNull(result)) {
+                result = Constants.TARS_RPC_RESULT_EMPTY;
             }
-            exchange.getAttributes().put(Constants.RPC_RESULT, ret);
+            exchange.getAttributes().put(Constants.RPC_RESULT, result);
             exchange.getAttributes().put(Constants.CLIENT_RESPONSE_RESULT_TYPE, ResultEnum.SUCCESS.getName());
-            return ret;
+            return result;
         })).onErrorMap(m -> new ShenyuException("failed to invoke tars")).then(chain.execute(exchange));
     }
 

@@ -71,8 +71,16 @@ public interface DiscoveryProcessor {
     /**
      * sync all upstream list to gateway and db.
      *
-     * @param discoveryHandlerId discoveryHandlerId
+     * @param discoveryHandlerDTO discoveryHandlerDTO
+     * @param proxySelectorDTO    proxySelectorDTO
      */
-    void fetchAll(String discoveryHandlerId);
+    void fetchAll(DiscoveryHandlerDTO discoveryHandlerDTO, ProxySelectorDTO proxySelectorDTO);
+
+    /**
+     * remove selector upstream.
+     *
+     * @param proxySelectorDTO    proxySelectorDTO
+     */
+    void removeSelectorUpstream(ProxySelectorDTO proxySelectorDTO);
 
 }

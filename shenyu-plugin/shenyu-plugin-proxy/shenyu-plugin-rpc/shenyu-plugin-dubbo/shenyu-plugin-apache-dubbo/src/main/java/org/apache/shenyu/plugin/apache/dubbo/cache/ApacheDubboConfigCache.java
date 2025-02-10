@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.ExecutionException;
-import javax.annotation.Nonnull;
+import jakarta.annotation.Nonnull;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.dubbo.config.ApplicationConfig;
 import org.apache.dubbo.config.ConsumerConfig;
@@ -65,7 +65,7 @@ public final class ApacheDubboConfigCache extends DubboConfigCache {
                     config.destroy();
                 }
             })
-            .build(new CacheLoader<String, ReferenceConfig<GenericService>>() {
+            .build(new CacheLoader<>() {
                 @Override
                 @Nonnull
                 public ReferenceConfig<GenericService> load(@Nonnull final String key) {
@@ -223,6 +223,9 @@ public final class ApacheDubboConfigCache extends DubboConfigCache {
             if (StringUtils.isNoneBlank(dubboParam.getCluster())) {
                 reference.setCluster(dubboParam.getCluster());
             }
+            if (StringUtils.isNoneBlank(dubboParam.getLoadbalance())) {
+                reference.getParameters().put(Constants.DUBBO_LOAD_BALANCE, dubboParam.getLoadbalance());
+            }
             // set dubbo sub protocol
             Optional.ofNullable(dubboParam.getProtocol()).ifPresent(reference::setProtocol);
             Optional.ofNullable(dubboParam.getTimeout()).ifPresent(reference::setTimeout);
@@ -230,11 +233,15 @@ public final class ApacheDubboConfigCache extends DubboConfigCache {
             Optional.ofNullable(dubboParam.getSent()).ifPresent(reference::setSent);
         }
         if (StringUtils.isNotBlank(namespace)) {
-            if (!registryConfig.getAddress().contains(Constants.NAMESPACE)) {
-                reference.setRegistry(new RegistryConfig(registryConfig.getAddress() + "?" + Constants.NAMESPACE + "=" + namespace));
+            RegistryConfig registryConfig = new RegistryConfig();
+            registryConfig.setRegister(false);
+            if (!this.registryConfig.getAddress().contains(Constants.NAMESPACE)) {
+                registryConfig.setAddress(this.registryConfig.getAddress() + "?" + Constants.NAMESPACE + "=" + namespace);
+                reference.setRegistry(registryConfig);
             } else {
-                String newAddress = registryConfig.getAddress().substring(0, registryConfig.getAddress().indexOf(Constants.NAMESPACE) + 1) + Constants.NAMESPACE + "=" + namespace;
-                reference.setRegistry(new RegistryConfig(newAddress));
+                String newAddress = this.registryConfig.getAddress().substring(0, this.registryConfig.getAddress().indexOf(Constants.NAMESPACE) + 1) + Constants.NAMESPACE + "=" + namespace;
+                registryConfig.setAddress(newAddress);
+                reference.setRegistry(registryConfig);
             }
         } else {
             reference.setRegistry(registryConfig);

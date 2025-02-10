@@ -66,14 +66,14 @@ public class SpringMvcApiMetaRegister extends AbstractApiMetaRegistrar {
 
         ShenyuSpringMvcClient annotation = apiBean.getAnnotation(ShenyuSpringMvcClient.class);
 
-        return annotation != null && annotation.path().endsWith("/**");
+        return Objects.nonNull(annotation) && annotation.path()[0].endsWith("/**");
     }
 
     @Override
     protected MetaDataRegisterDTO preParse(final ApiBean apiBean) {
 
         ShenyuSpringMvcClient annotation = apiBean.getAnnotation(ShenyuSpringMvcClient.class);
-        String apiPath = PathUtils.pathJoin(clientRegisterConfig.getContextPath(), annotation.path());
+        String apiPath = PathUtils.pathJoin(clientRegisterConfig.getContextPath(), annotation.path()[0]);
 
         return MetaDataRegisterDTO.builder()
                 .contextPath(clientRegisterConfig.getContextPath())
@@ -96,8 +96,8 @@ public class SpringMvcApiMetaRegister extends AbstractApiMetaRegistrar {
     @Override
     protected Boolean match(final ApiBean apiBean) {
         ShenyuSpringMvcClient annotation = apiBean.getAnnotation(ShenyuSpringMvcClient.class);
-        if (annotation != null) {
-            return !annotation.path().endsWith("/**");
+        if (Objects.nonNull(annotation)) {
+            return !annotation.path()[0].endsWith("/**");
         }
         return true;
     }
@@ -112,7 +112,7 @@ public class SpringMvcApiMetaRegister extends AbstractApiMetaRegistrar {
 
         ShenyuSpringMvcClient methodAnnotation = apiDefinition.getAnnotation(ShenyuSpringMvcClient.class);
 
-        String methodPath = Objects.isNull(methodAnnotation) ? StringUtils.EMPTY : methodAnnotation.path();
+        String methodPath = Objects.isNull(methodAnnotation) ? StringUtils.EMPTY : methodAnnotation.path()[0];
 
         if (StringUtils.isEmpty(methodPath)) {
             methodPath = apiDefinition.getMethodPath();
@@ -121,8 +121,8 @@ public class SpringMvcApiMetaRegister extends AbstractApiMetaRegistrar {
         ShenyuSpringMvcClient classAnnotation = apiDefinition.getApiBean()
                 .getAnnotation(ShenyuSpringMvcClient.class);
 
-        String beanPath = Objects.isNull(classAnnotation) || StringUtils.isBlank(classAnnotation.path())
-                ? apiDefinition.getBeanPath() : classAnnotation.path();
+        String beanPath = Objects.isNull(classAnnotation) || StringUtils.isBlank(classAnnotation.path()[0])
+                ? apiDefinition.getBeanPath() : classAnnotation.path()[0];
 
         String apiPath = PathUtils.pathJoin(clientRegisterConfig.getContextPath(), beanPath, methodPath);
 

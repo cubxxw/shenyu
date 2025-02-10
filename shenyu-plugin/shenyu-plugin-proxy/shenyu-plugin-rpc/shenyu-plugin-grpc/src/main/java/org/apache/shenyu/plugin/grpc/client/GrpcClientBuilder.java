@@ -37,6 +37,7 @@ import org.apache.shenyu.plugin.grpc.resolver.ShenyuNameResolverProvider;
 import org.springframework.beans.factory.NoSuchBeanDefinitionException;
 
 import java.net.URI;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executor;
 
@@ -67,7 +68,7 @@ public final class GrpcClientBuilder {
                 .intercept(new ContextClientInterceptor())
                 .defaultLoadBalancingPolicy(LoadBalancerStrategy.SHENYU.getStrategy())
                 .usePlaintext()
-                .maxInboundMessageSize(100 * 1024 * 1024)
+                .maxInboundMessageSize(100 * Constants.BYTES_PER_MB)
                 .executor(buildExecutor())
                 .disableRetry();
         ManagedChannel channel = builder.build();
@@ -82,7 +83,7 @@ public final class GrpcClientBuilder {
      */
     public static Executor buildExecutor() {
         GrpcRegisterConfig config = Singleton.INST.get(GrpcRegisterConfig.class);
-        if (null == config) {
+        if (Objects.isNull(config)) {
             return null;
         }
         final String threadpool = Optional.ofNullable(config.getThreadpool()).orElse(Constants.CACHED);

@@ -17,7 +17,7 @@
 
 package org.apache.shenyu.client.apache.dubbo.validation.service;
 
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotNull;
 import java.util.Objects;
 
 /**
@@ -76,7 +76,7 @@ public interface TestService {
             if (this == o) {
                 return true;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (Objects.isNull(o) || getClass() != o.getClass()) {
                 return false;
             }
             TestObject that = (TestObject) o;

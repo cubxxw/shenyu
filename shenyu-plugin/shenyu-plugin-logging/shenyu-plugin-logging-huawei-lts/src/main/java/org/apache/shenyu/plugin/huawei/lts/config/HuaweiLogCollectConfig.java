@@ -450,7 +450,7 @@ public class HuaweiLogCollectConfig {
             if (this == o) {
                 return Boolean.TRUE;
             }
-            if (o == null || getClass() != o.getClass()) {
+            if (Objects.isNull(o) || getClass() != o.getClass()) {
                 return Boolean.FALSE;
             }
             HuaweiLtsLogConfig that = (HuaweiLtsLogConfig) o;
@@ -459,7 +459,7 @@ public class HuaweiLogCollectConfig {
                     && Objects.equals(getLogStreamId(), that.getLogStreamId())
                     && Objects.equals(getAccessKeyId(), that.getAccessKeyId())
                     && Objects.equals(getAccessKeySecret(), that.getAccessKeySecret())
-                    && Objects.equals(getRegionName(), that.getTotalSizeInBytes())
+                    && Objects.equals(getRegionName(), that.getRegionName())
                     && Objects.equals(getTotalSizeInBytes(), that.getTotalSizeInBytes())
                     && Objects.equals(getMaxBlockMs(), that.getMaxBlockMs())
                     && Objects.equals(getIoThreadCount(), that.getIoThreadCount())

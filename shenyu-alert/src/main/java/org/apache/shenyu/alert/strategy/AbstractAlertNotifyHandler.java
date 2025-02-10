@@ -23,27 +23,36 @@ import org.springframework.web.client.RestTemplate;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 
-import javax.annotation.Resource;
+import jakarta.annotation.Resource;
+import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
+import java.util.TimeZone;
 
 /**
  * abstract alert notify.
  */
 abstract class AbstractAlertNotifyHandler implements AlertNotifyHandler {
     protected static final DateTimeFormatter DTF = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
-    
+
     @Resource
     private TemplateEngine templateEngine;
     
-    @Resource
+    @Resource(name = "alterRestTemplate")
     private RestTemplate restTemplate;
     
     protected String renderContent(final AlarmContent alert) {
         Context context = new Context();
         context.setVariable("title", "[ShenYu Alarm]");
         
+        context.setVariable("titleLabel", "Alarm Title");
+        context.setVariable("alarmTitle", alert.getTitle());
+        
         context.setVariable("triggerTimeLabel", "Alarm Time");
-        context.setVariable("triggerTime", DTF.format(alert.getDateCreated().toInstant()));
+        context.setVariable("triggerTime", DTF.format(LocalDateTime.ofInstant(
+                Objects.isNull(alert.getDateCreated()) ? Instant.now() : alert.getDateCreated().toInstant(),
+                TimeZone.getDefault().toZoneId())));
         
         context.setVariable("contentLabel", "Alarm Content");
         context.setVariable("content", alert.getContent());
@@ -59,7 +68,7 @@ abstract class AbstractAlertNotifyHandler implements AlertNotifyHandler {
     protected abstract String templateName();
     
     private static String removeBlankLine(final String value) {
-        if (value == null) {
+        if (Objects.isNull(value)) {
             return null;
         }
         return value.replaceAll("(?m)^\\s*$(\\n|\\r\\n)", "");

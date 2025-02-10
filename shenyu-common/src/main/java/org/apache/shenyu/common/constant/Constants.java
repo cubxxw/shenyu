@@ -23,6 +23,11 @@ package org.apache.shenyu.common.constant;
 public interface Constants {
     
     /**
+     * The constant string separator.
+     */
+    String SEPARATOR_CHARS = ";";
+    
+    /**
      * The constant SUCCESS.
      */
     String SUCCESS = "success";
@@ -46,6 +51,16 @@ public interface Constants {
      * The constant META_DATA.
      */
     String META_DATA = "metaData";
+    
+    /**
+     * The constant OLD_CONTEXT_PATH_META_DATA.
+     */
+    String OLD_CONTEXT_PATH_META_DATA = "old_context_path_meta_data";
+    
+    /**
+     * The constant OLD_META_DATA.
+     */
+    String OLD_META_DATA = "old_meta_data";
     
     /**
      * The constant CLIENT_RESPONSE_ATTR.
@@ -81,11 +96,6 @@ public interface Constants {
      * The constant MOTAN_RPC_RESULT_EMPTY.
      */
     String MOTAN_RPC_RESULT_EMPTY = "motan has not return value!";
-    
-    /**
-     * The constant BRPC_RPC_RESULT_EMPTY.
-     */
-    String BRPC_RPC_RESULT_EMPTY = "brpc has not return value!";
     
     /**
      * The constant CLIENT_RESPONSE_RESULT_TYPE.
@@ -233,14 +243,30 @@ public interface Constants {
     String REWRITE_URI = "rewrite_uri";
     
     /**
+     * The constant REWRITE_CONTEXT_PATH.
+     */
+    String REWRITE_CONTEXT_PATH = "rewrite_context_path";
+    
+    /**
      * The constant URI.
      */
     String URI = "uri";
+
     
+    /**
+     * The constant HEARTBEAT.
+     */
+    String HEARTBEAT = "heartbeat";
+
+    /**
+     * The constant header key of sign plugin version-2.
+     */
+    String SHENYU_AUTHORIZATION = "ShenYu-Authorization";
+
     /**
      * The constant LINE_SEPARATOR.
      */
-    String LINE_SEPARATOR = System.getProperty("line.separator");
+    String LINE_SEPARATOR = System.lineSeparator();
     
     /**
      * The constant URL_SEPARATOR.
@@ -366,6 +392,11 @@ public interface Constants {
      * jwt handle key for secretKey.
      */
     String SECRET_KEY = "secretKey";
+    
+    /**
+     * basicAuth handle key for defaultHandleJson.
+     */
+    String DEFAULT_HANDLE_JSON = "defaultHandleJson";
     
     /**
      * local key.
@@ -521,6 +552,11 @@ public interface Constants {
      * dubbo remote address.
      */
     String DUBBO_REMOTE_ADDRESS = "dubboRemoteAddress";
+
+    /**
+     * dubbo load balance from meta data.
+     */
+    String DUBBO_LOAD_BALANCE = "dubboLoadBalance";
     
     /**
      * dubbo group.
@@ -586,17 +622,27 @@ public interface Constants {
      * The constant API_DOC_TYPE.
      */
     String API_DOC_TYPE = "apiDoc";
-    
+
     /**
      * The constant API_DOC_PATH.
      */
     String API_DOC_PATH = "/shenyu-client/register-apiDoc";
-    
+
+    /**
+     * The constant DISCOVERY_CONFIG_TYPE.
+     */
+    String DISCOVERY_CONFIG_TYPE = "discovery";
+
+    /**
+     * The constant DISCOVERY_CONFIG_PATH.
+     */
+    String DISCOVERY_CONFIG_PATH = "/shenyu-client/register-discoveryConfig";
+
     /**
      * When register by http, the login path.
      */
     String LOGIN_PATH = "/platform/login";
-    
+
     /**
      * When register by http, admin username.
      */
@@ -611,7 +657,17 @@ public interface Constants {
      * When register by http, admin password.
      */
     String PASS_WORD = "password";
-    
+
+    /**
+     * key.
+     */
+    String AES_SECRET_KEY = "aes-secret-key";
+
+    /**
+     * iv.
+     */
+    String AES_SECRET_IV = "aes-secret-iv";
+
     /**
      * X-Access-Token.
      */
@@ -701,7 +757,9 @@ public interface Constants {
      * The maximum free memory reserved by the blocking queue for the JVM.
      */
     int THE_256_MB = 256 * 1024 * 1024;
-    
+
+    int BYTES_PER_MB = 1024 * 1024;
+
     /**
      * The default cluster of dubbo client.
      */
@@ -747,6 +805,131 @@ public interface Constants {
      * The constant DEFAULT_RULE.
      */
     String DEFAULT_RULE = "default_rule";
+
+    /**
+     * the plugin start time of plugin lifecycle.
+     */
+    String PLUGIN_START_TIME = "pluginStartTime:";
+
+    /**
+     * the plugin end time of plugin lifecycle.
+     */
+    String PLUGIN_END_TIME = "pluginEndTime:";
+
+    /**
+     * the chain start time of chain lifecycle.
+     */
+    String CHAIN_START_TIME = "chainStartTime:";
+
+    /**
+     * the chain end time of chain lifecycle.
+     */
+    String CHAIN_END_TIME = "chainEndTime:";
+
+    /**
+     * ratelimiter plugin metrics.
+     */
+    String METRICS_RATE_LIMITER = "metricsRateLimiter";
+
+    /**
+     * sentinel plugin metrics.
+     */
+    String METRICS_SENTINEL = "metricsSentinel";
+
+    /**
+     * resilience4j plugin metrics.
+     */
+    String METRICS_RESILIENCE4J = "metricsResilience4j";
+
+    /**
+     * Hystrix plugin metrics.
+     */
+    String METRICS_HYSTRIX = "metricsHystrix";
+    
+    /**
+     * The constant shenyu namespace id.
+     */
+    String SHENYU_NAMESPACE_ID = "namespaceId";
+    
+    /**
+     * The constant SYS_DEFAULT_NAMESPACE_ID.
+     */
+    String SYS_DEFAULT_NAMESPACE_ID = "649330b6-c2d7-4edc-be8e-8a54df9eb385";
+    
+    /**
+     * The constant DEFAULT_NAMESPACE_PRIMARY_KEY.
+     */
+    String DEFAULT_NAMESPACE_PRIMARY_KEY = "1";
+    
+    /**
+     * The constant EVENT_NAME_DICT.
+     */
+    String EVENT_NAME_DICT = "dict";
+    
+    /**
+     * The constant EVENT_NAME_PLUGIN_HANDLE.
+     */
+    String EVENT_NAME_PLUGIN_HANDLE = "plugin-handle";
+    
+    /**
+     * The constant EVENT_NAME_META_DATA.
+     */
+    String EVENT_NAME_META_DATA = "meta-data";
+    
+    /**
+     * The constant EVENT_NAME_NAMESPACE.
+     */
+    String EVENT_NAME_NAMESPACE = "namespace";
+    
+    /**
+     * The constant EVENT_NAME_PLUGIN.
+     */
+    String EVENT_NAME_PLUGIN = "plugin";
+    
+    /**
+     * The constant EVENT_NAME_NAMESPACE_PLUGIN.
+     */
+    String EVENT_NAME_NAMESPACE_PLUGIN = "namespace-plugin";
+    
+    /**
+     * The constant EVENT_NAME_RESOURCE.
+     */
+    String EVENT_NAME_RESOURCE = "resource";
+    
+    /**
+     * The constant EVENT_NAME_ROLE.
+     */
+    String EVENT_NAME_ROLE = "role";
+    
+    /**
+     * The constant EVENT_NAME_RULE.
+     */
+    String EVENT_NAME_RULE = "rule";
+    
+    /**
+     * The constant EVENT_NAME_SELECTOR.
+     */
+    String EVENT_NAME_SELECTOR = "selector";
+    
+    /**
+     * The constant EVENT_NAME_USER.
+     */
+    String EVENT_NAME_USER = "user";
+    
+    /**
+     * The constant EVENT_NAME_DATA.
+     */
+    String EVENT_NAME_DATA = "data";
+    
+    /**
+     * The constant EVENT_NAME_REGISTER.
+     */
+    String HTTP_PATH = "shenyu.httpPath";
+
+    /**
+     * The constant preserve host.
+     */
+    String PRESERVE_HOST = "preserveHost";
     
     /**
      * String q.

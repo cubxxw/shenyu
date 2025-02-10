@@ -19,6 +19,7 @@ package org.apache.shenyu.common.config;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.shenyu.common.concurrent.MemoryLimitCalculator;
+import org.apache.shenyu.common.constant.Constants;
 import org.apache.shenyu.common.enums.TrieMatchModeEnum;
 
 import java.util.ArrayList;
@@ -69,7 +70,27 @@ public class ShenyuConfig {
     private SpringCloudCacheConfig springCloudCache = new SpringCloudCacheConfig();
     
     private AlertConfig alert = new AlertConfig();
-    
+
+    private String namespace = Constants.SYS_DEFAULT_NAMESPACE_ID;
+
+    /**
+     * shenyu bootstrap namespace.
+     *
+     * @return namespace id
+     */
+    public String getNamespace() {
+        return namespace;
+    }
+
+    /**
+     * Set shenyu bootstrap namespace, default value is {@link org.apache.shenyu.common.constant.Constants#SYS_DEFAULT_NAMESPACE_ID}.
+     *
+     * @param namespace namespace id
+     */
+    public void setNamespace(final String namespace) {
+        this.namespace = namespace;
+    }
+
     /**
      * Gets health.
      *
@@ -1133,7 +1154,7 @@ public class ShenyuConfig {
         private static final Set<String> DEFAULT_ALLOWED_HEADERS;
 
         static {
-            DEFAULT_ALLOWED_HEADERS = new HashSet<String>() {
+            DEFAULT_ALLOWED_HEADERS = new HashSet<>() {
                 {
                     add("x-requested-with");
                     add("authorization");
@@ -1144,6 +1165,7 @@ public class ShenyuConfig {
                     add("token");
                     add("username");
                     add("client");
+                    add(Constants.SHENYU_AUTHORIZATION);
                 }
             };
         }
@@ -1978,9 +2000,9 @@ public class ShenyuConfig {
     }
     
     public static class AlertConfig {
-        private Boolean enabled = Boolean.TRUE;
+        private Boolean enabled = Boolean.FALSE;
         
-        private String reportUrl = "http://localhost:9095/alert/report";
+        private String admins = "localhost:9095";
         
         /**
          * get shenyu spring cloud cache status.
@@ -1999,19 +2021,20 @@ public class ShenyuConfig {
         }
         
         /**
-         * Get shenyu admin alert report url.
-         * @return url
+         * Get shenyu admin alert report urls.
+         * eg: localhost:9095,localhost:9093
+         * @return admin alert report server list
          */
-        public String getReportUrl() {
-            return reportUrl;
+        public String getAdmins() {
+            return admins;
         }
         
         /**
          * Set shenyu admin alert report url.
-         * @param reportUrl admin url
+         * @param admins admin url
          */
-        public void setReportUrl(final String reportUrl) {
-            this.reportUrl = reportUrl;
+        public void setAdmins(final String admins) {
+            this.admins = admins;
         }
     }
 }

@@ -18,7 +18,6 @@
 package org.apache.shenyu.admin.model.vo;
 
 import org.apache.shenyu.admin.model.dto.DiscoveryDTO;
-import org.apache.shenyu.admin.model.dto.DiscoveryUpstreamDTO;
 
 import java.io.Serializable;
 import java.sql.Timestamp;
@@ -84,6 +83,12 @@ public class ProxySelectorVO implements Serializable {
 
 
     /**
+     * namespaceId.
+     */
+    private String namespaceId;
+
+
+    /**
      * discovery.
      */
     private DiscoveryDTO discovery;
@@ -91,7 +96,7 @@ public class ProxySelectorVO implements Serializable {
     /**
      * discovery upstream list.
      */
-    private List<DiscoveryUpstreamDTO> discoveryUpstreams;
+    private List<DiscoveryUpstreamVO> discoveryUpstreams;
 
     /**
      * ProxySelectorVO.
@@ -102,19 +107,22 @@ public class ProxySelectorVO implements Serializable {
 
     /**
      * ProxySelectorVO.
-     *
+     * @param id  id of the id
      * @param name name of the proxy
      * @param forwardPort forward port
      * @param type type of the proxy
      * @param listenerNode listener
      * @param handler handler
+     * @param discoveryHandlerId discoveryHandlerId
+     * @param createTime createTime
+     * @param updateTime updateTime
      * @param discovery discovery
      * @param discoveryUpstreams discoveryUpstreams
      * @param props props
      */
     public ProxySelectorVO(final String id, final String name, final Integer forwardPort, final String type, final String listenerNode,
                            final String handler, final String discoveryHandlerId, final Timestamp createTime, final Timestamp updateTime, final DiscoveryDTO discovery,
-                           final List<DiscoveryUpstreamDTO> discoveryUpstreams, final String props) {
+                           final List<DiscoveryUpstreamVO> discoveryUpstreams, final String props) {
         this.id = id;
         this.name = name;
         this.forwardPort = forwardPort;
@@ -306,6 +314,24 @@ public class ProxySelectorVO implements Serializable {
     }
 
     /**
+     * get namespaceId.
+     *
+     * @return namespaceId
+     */
+    public String getNamespaceId() {
+        return namespaceId;
+    }
+
+    /**
+     * set namespaceId.
+     *
+     * @param namespaceId namespaceId
+     */
+    public void setNamespaceId(final String namespaceId) {
+        this.namespaceId = namespaceId;
+    }
+
+    /**
      * get discovery.
      * @return discovery
      */
@@ -325,7 +351,7 @@ public class ProxySelectorVO implements Serializable {
      * get discovery upstream list.
      * @return upstream list
      */
-    public List<DiscoveryUpstreamDTO> getDiscoveryUpstreams() {
+    public List<DiscoveryUpstreamVO> getDiscoveryUpstreams() {
         return discoveryUpstreams;
     }
 
@@ -333,7 +359,7 @@ public class ProxySelectorVO implements Serializable {
      * set discovery upstream list.
      * @param discoveryUpstreams discovery upstream list
      */
-    public void setDiscoveryUpstreams(final List<DiscoveryUpstreamDTO> discoveryUpstreams) {
+    public void setDiscoveryUpstreams(final List<DiscoveryUpstreamVO> discoveryUpstreams) {
         this.discoveryUpstreams = discoveryUpstreams;
     }
 }
