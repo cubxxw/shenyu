@@ -35,6 +35,7 @@ import io.kubernetes.client.openapi.models.V1SecretList;
 import io.kubernetes.client.openapi.models.V1Service;
 import io.kubernetes.client.openapi.models.V1ServiceList;
 import io.kubernetes.client.util.generic.GenericKubernetesApi;
+import org.apache.commons.collections4.MapUtils;
 import org.apache.shenyu.common.config.NettyHttpProperties;
 import org.apache.shenyu.common.config.ssl.ShenyuSniAsyncMapping;
 import org.apache.shenyu.common.exception.ShenyuException;
@@ -42,6 +43,7 @@ import org.apache.shenyu.k8s.parser.IngressParser;
 import org.apache.shenyu.k8s.reconciler.EndpointsReconciler;
 import org.apache.shenyu.k8s.reconciler.IngressReconciler;
 import org.apache.shenyu.k8s.repository.ShenyuCacheRepository;
+import org.apache.shenyu.plugin.base.cache.CommonDiscoveryUpstreamDataSubscriber;
 import org.apache.shenyu.plugin.base.cache.CommonPluginDataSubscriber;
 import org.apache.shenyu.plugin.global.subsciber.MetaDataCacheSubscriber;
 import org.springframework.beans.factory.ObjectProvider;
@@ -54,6 +56,9 @@ import reactor.netty.tcp.TcpSslContextSpec;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.time.Duration;
+
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.concurrent.Executors;
 
@@ -95,7 +100,6 @@ public class IngressControllerConfiguration {
                                 .build());
         // TODO support config in application.yaml
         builder.withWorkerCount(2);
-//        builder.withReadyFunc(ingressReconciler::informerReady);
         return builder.withReconciler(ingressReconciler).withName("ingressController").build();
     }
 
@@ -159,15 +163,17 @@ public class IngressControllerConfiguration {
      * ShenyuCacheRepository.
      *
      * @param pluginDataSubscriber CommonPluginDataSubscriber
+     * @param discoveryUpstreamDataSubscriber CommonDiscoveryUpstreamDataSubscriber
      * @param metaDataSubscriber MetaDataSubscriber
      * @param metaDataCacheSubscriber MetaDataCacheSubscriber
      * @return ShenyuCacheRepository
      */
     @Bean
     public ShenyuCacheRepository shenyuCacheRepository(final CommonPluginDataSubscriber pluginDataSubscriber,
+                                                       final CommonDiscoveryUpstreamDataSubscriber discoveryUpstreamDataSubscriber,
                                                        final MetaDataCacheSubscriber metaDataSubscriber,
                                                        final MetaDataCacheSubscriber metaDataCacheSubscriber) {
-        return new ShenyuCacheRepository(pluginDataSubscriber, metaDataSubscriber, metaDataCacheSubscriber);
+        return new ShenyuCacheRepository(pluginDataSubscriber, discoveryUpstreamDataSubscriber, metaDataSubscriber, metaDataCacheSubscriber);
     }
 
     /**
@@ -251,14 +257,16 @@ public class IngressControllerConfiguration {
     public TcpSslContextSpec tcpSslContextSpec(final ObjectProvider<NettyHttpProperties> properties, final ApiClient apiClient) throws ApiException {
         NettyHttpProperties nettyHttpProperties = Optional.ofNullable(properties.getIfAvailable()).orElse(new NettyHttpProperties());
         NettyHttpProperties.SniProperties sniProperties = nettyHttpProperties.getSni();
-        if (sniProperties != null && sniProperties.getEnabled() && "k8s".equals(sniProperties.getMod())) {
+        if (Objects.nonNull(sniProperties) && sniProperties.getEnabled() && "k8s".equals(sniProperties.getMod())) {
             String defaultName = Optional.ofNullable(sniProperties.getDefaultK8sSecretName()).orElse("default-ingress-crt");
             String defaultNamespace = Optional.ofNullable(sniProperties.getDefaultK8sSecretNamespace()).orElse("default");
             CoreV1Api coreV1Api = new CoreV1Api(apiClient);
             V1Secret secret = coreV1Api.readNamespacedSecret(defaultName, defaultNamespace, "true");
-            if (secret.getData() != null) {
-                InputStream crtStream = new ByteArrayInputStream(secret.getData().get("tls.crt"));
-                InputStream keyStream = new ByteArrayInputStream(secret.getData().get("tls.key"));
+
+            Map<String, byte[]> secretData = secret.getData();
+            if (MapUtils.isEmpty(secretData)) {
+                InputStream crtStream = new ByteArrayInputStream(secretData.get("tls.crt"));
+                InputStream keyStream = new ByteArrayInputStream(secretData.get("tls.key"));
                 return TcpSslContextSpec.forServer(crtStream, keyStream);
             } else {
                 throw new ShenyuException(String.format("Can not read cert and key from default secret %s/%s", defaultNamespace, defaultName));

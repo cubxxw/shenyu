@@ -23,6 +23,7 @@
         <result column="date_created" jdbcType="TIMESTAMP" property="dateCreated"/>
         <result column="date_updated" jdbcType="TIMESTAMP" property="dateUpdated"/>
         <result column="discovery_handler_id" jdbcType="VARCHAR" property="discoveryHandlerId"/>
+        <result column="namespace_id" jdbcType="VARCHAR" property="namespaceId"/>
         <result column="protocol" jdbcType="VARCHAR" property="protocol"/>
         <result column="url" jdbcType="VARCHAR" property="url"/>
         <result column="status" jdbcType="INTEGER" property="status"/>
@@ -35,6 +36,7 @@
         date_created,
         date_updated,
         discovery_handler_id,
+        namespace_id,
         protocol,
         url,
         status,
@@ -52,6 +54,7 @@
         INSERT INTO discovery_upstream (
         id,
         discovery_handler_id,
+        namespace_id,
         protocol,
         url,
         status,
@@ -62,6 +65,7 @@
         VALUES (
         #{id, jdbcType=VARCHAR},
         #{discoveryHandlerId,jdbcType=VARCHAR},
+        #{namespaceId, jdbcType=VARCHAR},
         #{protocol,jdbcType=VARCHAR},
         #{url,jdbcType=VARCHAR},
         #{status,jdbcType=INTEGER},
@@ -122,6 +126,12 @@
         WHERE discovery_handler_id=#{id, jdbcType=VARCHAR} and url =#{url}
     </update>
 
+    <select id="selectAll" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM discovery_upstream
+    </select>
+
     <select id="selectByIds" parameterType="java.util.List" resultMap="BaseResultMap">
         SELECT
         <include refid="Base_Column_List"/>
@@ -140,6 +150,27 @@
     </select>
 
     <select id="selectByProxySelectorId" resultMap="BaseResultMap">
+        <include refid="base_join_discovery_rel"/>
+        <where>
+            dr.proxy_selector_id = #{proxySelectorId , jdbcType=VARCHAR}
+        </where>
+    </select>
+
+    <select id="selectBySelectorId" resultMap="BaseResultMap">
+        <include refid="base_join_discovery_rel"/>
+        <where>
+            dr.selector_id = #{selectorId , jdbcType=VARCHAR}
+        </where>
+    </select>
+
+    <select id="selectByNamespaceId" resultMap="BaseResultMap">
+        SELECT
+        <include refid="Base_Column_List"/>
+        FROM discovery_upstream
+        WHERE namespace_id=#{namespaceId, jdbcType=VARCHAR}
+    </select>
+
+    <sql id="base_join_discovery_rel">
         SELECT
         du.id,
         du.date_created,
@@ -152,15 +183,11 @@
         du.props
         FROM discovery_upstream du
         INNER JOIN discovery_rel dr ON du.discovery_handler_id = dr.discovery_handler_id
-        <where>
-            dr.proxy_selector_id = #{proxySelectorId , jdbcType=VARCHAR}
-        </where>
-    </select>
+    </sql>
 
     <select id="selectByDiscoveryHandlerIdAndUrl"
             resultType="org.apache.shenyu.admin.model.entity.DiscoveryUpstreamDO">
-        SELECT <include refid="Base_Column_List"/> from discovery_upstream where discovery_handler_id = #{discoveryHandlerId} and url = #{url}
-
+        SELECT <include refid="Base_Column_List"/> from discovery_upstream where discovery_handler_id = #{discoveryHandlerId} and url = #{url} for update
     </select>
 
     <delete id="deleteByIds" parameterType="java.util.List">
@@ -174,6 +201,7 @@
         INSERT INTO discovery_upstream (
         id,
         discovery_handler_id,
+        namespace_id,
         protocol,
         url,
         status,
@@ -185,6 +213,7 @@
         <foreach collection="list" separator="," item="item">
             (#{item.id, jdbcType=VARCHAR},
             #{item.discoveryHandlerId,jdbcType=VARCHAR},
+            #{item.namespaceId,jdbcType=VARCHAR},
             #{item.protocol,jdbcType=VARCHAR},
             #{item.url,jdbcType=VARCHAR},
             #{item.status,jdbcType=INTEGER},
@@ -203,4 +232,11 @@
     <delete id="deleteByUrl">
         DELETE FROM discovery_upstream WHERE discovery_handler_id = #{discoveryHandlerId} and url = #{url}
     </delete>
+
+    <update id="updateStatusByUrl">
+        UPDATE discovery_upstream
+        SET status = #{status}
+        WHERE discovery_handler_id = #{discoveryHandlerId} and url = #{url}
+    </update>
+
 </mapper>

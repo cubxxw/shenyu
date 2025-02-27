@@ -28,6 +28,7 @@ import org.apache.shenyu.plugin.api.ShenyuPluginChain;
 import org.apache.shenyu.plugin.api.context.ShenyuContext;
 import org.apache.shenyu.plugin.api.result.ShenyuResultEnum;
 import org.apache.shenyu.plugin.api.result.ShenyuResultWrap;
+import org.apache.shenyu.plugin.api.utils.RequestUrlUtils;
 import org.apache.shenyu.plugin.api.utils.WebFluxResultUtils;
 import org.apache.shenyu.plugin.base.AbstractShenyuPlugin;
 import org.apache.shenyu.plugin.motan.proxy.MotanProxyService;
@@ -56,6 +57,11 @@ public class MotanPlugin extends AbstractShenyuPlugin {
     public MotanPlugin(final MotanProxyService motanProxyService) {
         this.motanProxyService = motanProxyService;
     }
+    
+    @Override
+    protected String getRawPath(final ServerWebExchange exchange) {
+        return RequestUrlUtils.getRewrittenRawPath(exchange);
+    }
 
     @Override
     @SuppressWarnings("all")
@@ -63,10 +69,10 @@ public class MotanPlugin extends AbstractShenyuPlugin {
                                    final SelectorData selector, final RuleData rule) {
         String param = exchange.getAttribute(Constants.PARAM_TRANSFORM);
         ShenyuContext shenyuContext = exchange.getAttribute(Constants.CONTEXT);
-        assert shenyuContext != null;
+        assert Objects.nonNull(shenyuContext);
         MetaData metaData = exchange.getAttribute(Constants.META_DATA);
         if (!checkMetaData(metaData)) {
-            assert metaData != null;
+            assert Objects.nonNull(metaData);
             LOG.error("path is :{}, meta data have error.... {}", shenyuContext.getPath(), metaData);
             exchange.getResponse().setStatusCode(HttpStatus.INTERNAL_SERVER_ERROR);
             Object error = ShenyuResultWrap.error(exchange, ShenyuResultEnum.META_DATA_ERROR);

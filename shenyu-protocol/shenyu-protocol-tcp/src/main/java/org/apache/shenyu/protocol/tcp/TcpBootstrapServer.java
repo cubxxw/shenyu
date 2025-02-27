@@ -36,6 +36,7 @@ import reactor.netty.tcp.TcpServer;
 
 import java.net.SocketAddress;
 import java.util.List;
+import java.util.Objects;
 
 
 /**
@@ -90,11 +91,11 @@ public class TcpBootstrapServer implements BootstrapServer {
     }
 
     private String getIp(final SocketAddress socketAddress) {
-        if (socketAddress == null) {
+        if (Objects.isNull(socketAddress)) {
             throw new NullPointerException("remoteAddress is null");
         }
         String address = socketAddress.toString();
-        return address.substring(2, address.indexOf(':'));
+        return address.substring(1, address.indexOf(':'));
     }
 
     /**

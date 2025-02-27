@@ -22,6 +22,7 @@ import com.tencent.polaris.configuration.api.core.ConfigFile;
 import com.tencent.polaris.configuration.api.core.ConfigFileChangeListener;
 import com.tencent.polaris.configuration.api.core.ConfigFileService;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.shenyu.common.config.ShenyuConfig;
 import org.apache.shenyu.common.constant.NacosPathConstants;
 import org.apache.shenyu.common.constant.PolarisPathConstants;
 import org.apache.shenyu.common.exception.ShenyuException;
@@ -59,17 +60,19 @@ public class PolarisSyncDataService extends AbstractNodeDataSyncService implemen
     public PolarisSyncDataService(final PolarisConfig polarisConfig, final ConfigFileService configFileService, final PluginDataSubscriber pluginDataSubscriber,
                                   final List<MetaDataSubscriber> metaDataSubscribers, final List<AuthDataSubscriber> authDataSubscribers,
                                   final List<ProxySelectorDataSubscriber> proxySelectorDataSubscribers,
-                                  final List<DiscoveryUpstreamDataSubscriber> discoveryUpstreamDataSubscribers) {
+                                  final List<DiscoveryUpstreamDataSubscriber> discoveryUpstreamDataSubscribers,
+                                  final ShenyuConfig shenyuConfig) {
         super(new ChangeData(PolarisPathConstants.PLUGIN_DATA_FILE_NAME, PolarisPathConstants.SELECTOR_DATA_FILE_NAME,
                         PolarisPathConstants.RULE_DATA_FILE_NAME, PolarisPathConstants.AUTH_DATA_ID_FILE_NAME,
                         PolarisPathConstants.META_DATA_FILE_NAME, PolarisPathConstants.PROXY_SELECTOR_FILE_NAME, NacosPathConstants.DISCOVERY_DATA_ID),
                 pluginDataSubscriber, metaDataSubscribers,
-                authDataSubscribers, proxySelectorDataSubscribers, discoveryUpstreamDataSubscribers);
+                authDataSubscribers, proxySelectorDataSubscribers, discoveryUpstreamDataSubscribers, shenyuConfig);
         this.polarisConfig = polarisConfig;
         this.configFileService = configFileService;
         startWatch();
     }
 
+    @Override
     protected String getServiceConfig(final String key, final Consumer<String> updateHandler, final Consumer<String> deleteHandler) {
         if (watchCache.containsKey(key)) {
             return null;
@@ -101,7 +104,7 @@ public class PolarisSyncDataService extends AbstractNodeDataSyncService implemen
     @Override
     protected void doRemoveListener(final String removeKey) {
         final ConfigFileChangeListener configFileChangeListener = watchCache.get(removeKey);
-        if (!Objects.isNull(configFileChangeListener)) {
+        if (Objects.nonNull(configFileChangeListener)) {
             final ConfigFile configFile = configFileService.getConfigFile(polarisConfig.getNamespace(), polarisConfig.getFileGroup(), removeKey);
             configFile.removeChangeListener(configFileChangeListener);
         }
@@ -110,7 +113,7 @@ public class PolarisSyncDataService extends AbstractNodeDataSyncService implemen
     @Override
     public void close() {
         watchCache.forEach((key, configFileChangeListener) -> {
-            if (!Objects.isNull(configFileChangeListener)) {
+            if (Objects.nonNull(configFileChangeListener)) {
                 final ConfigFile configFile = configFileService.getConfigFile(polarisConfig.getNamespace(), polarisConfig.getFileGroup(), key);
                 configFile.removeChangeListener(configFileChangeListener);
             }

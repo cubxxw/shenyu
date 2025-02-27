@@ -19,6 +19,7 @@ package org.apache.shenyu.springboot.starter.netty;
 
 import io.netty.channel.ChannelOption;
 import io.netty.channel.WriteBufferWaterMark;
+import org.apache.commons.collections4.CollectionUtils;
 import org.apache.shenyu.common.config.NettyHttpProperties;
 import org.apache.shenyu.common.exception.ShenyuException;
 import org.apache.shenyu.common.config.ssl.ShenyuSniAsyncMapping;
@@ -90,20 +91,22 @@ public class ShenyuNettyWebServerConfiguration {
         NettyReactiveWebServerFactory webServerFactory = new NettyReactiveWebServerFactory();
         NettyHttpProperties nettyHttpProperties = Optional.ofNullable(properties.getIfAvailable()).orElse(new NettyHttpProperties());
         webServerFactory.addServerCustomizers(new EventLoopNettyCustomizer(nettyHttpProperties, httpServer -> {
+            HttpServer server = httpServer;
             // Configure sni certificates
             NettyHttpProperties.SniProperties sniProperties = nettyHttpProperties.getSni();
             if (sniProperties.getEnabled()) {
                 ShenyuSniAsyncMapping shenyuSniAsyncMapping = shenyuSniAsyncMappingProvider.getIfAvailable();
-                if (shenyuSniAsyncMapping == null) {
+                if (Objects.isNull(shenyuSniAsyncMapping)) {
                     throw new ShenyuException("Can not find shenyuSniAsyncMapping bean");
                 }
                 if ("manual".equals(sniProperties.getMod())) {
-                    if (sniProperties.getCertificates() == null || sniProperties.getCertificates().isEmpty()) {
+                    List<SslCrtAndKeyFile> sslCrtAndKeyFiles = sniProperties.getCertificates();
+                    if (CollectionUtils.isEmpty(sslCrtAndKeyFiles)) {
                         throw new ShenyuException("At least one certificate is required");
                     }
 
                     // Use the first certificate as the default certificate (this default certificate will not actually be used)
-                    List<SslCrtAndKeyFile> certificates = sniProperties.getCertificates();
+                    List<SslCrtAndKeyFile> certificates = sslCrtAndKeyFiles;
                     for (SslCrtAndKeyFile certificate : certificates) {
                         try {
                             shenyuSniAsyncMapping.addSslCertificate(certificate);
@@ -115,19 +118,19 @@ public class ShenyuNettyWebServerConfiguration {
                     SslCrtAndKeyFile defaultCert = certificates.get(0);
                     TcpSslContextSpec defaultSpec = TcpSslContextSpec.forServer(new File(defaultCert.getKeyCertChainFile()),
                             new File(defaultCert.getKeyFile()));
-
-                    httpServer = httpServer.secure(spec -> spec.sslContext(defaultSpec)
+                    
+                    server = server.secure(spec -> spec.sslContext(defaultSpec)
                                 .setSniAsyncMappings(shenyuSniAsyncMapping), false);
                 } else if ("k8s".equals(sniProperties.getMod())) {
                     TcpSslContextSpec defaultSpec = Objects.requireNonNull(tcpSslContextSpecs.getIfAvailable());
-                    httpServer = httpServer.secure(spec -> spec.sslContext(defaultSpec)
+                    server = server.secure(spec -> spec.sslContext(defaultSpec)
                             .setSniAsyncMappings(shenyuSniAsyncMapping), false);
                     shenyuSniAsyncMapping.addSslProvider("shenyu-default", SslProvider.builder().sslContext(defaultSpec).build());
                 } else {
                     throw new ShenyuException("Cannot read the sni mod");
                 }
             }
-            return httpServer;
+            return server;
         }));
         return webServerFactory;
     }
@@ -156,7 +159,6 @@ public class ShenyuNettyWebServerConfiguration {
                     // server socket channel parameters
                     .option(ChannelOption.SO_BACKLOG, nettyHttpProperties.getServerSocketChannel().getSoBacklog())
                     .option(ChannelOption.SO_REUSEADDR, nettyHttpProperties.getServerSocketChannel().isSoReuseAddr())
-                    .option(ChannelOption.SO_RCVBUF, nettyHttpProperties.getServerSocketChannel().getSoRcvBuf())
                     // common parameters
                     .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyHttpProperties.getServerSocketChannel().getConnectTimeoutMillis())
                     .option(ChannelOption.WRITE_BUFFER_WATER_MARK, new WriteBufferWaterMark(nettyHttpProperties.getServerSocketChannel().getWriteBufferLowWaterMark(),
@@ -171,10 +173,8 @@ public class ShenyuNettyWebServerConfiguration {
                     .childOption(ChannelOption.SO_KEEPALIVE, nettyHttpProperties.getSocketChannel().isSoKeepAlive())
                     .childOption(ChannelOption.SO_LINGER, nettyHttpProperties.getSocketChannel().getSoLinger())
                     .childOption(ChannelOption.TCP_NODELAY, nettyHttpProperties.getSocketChannel().isTcpNoDelay())
-                    .childOption(ChannelOption.SO_SNDBUF, nettyHttpProperties.getSocketChannel().getSoSndBuf())
                     .childOption(ChannelOption.IP_TOS, nettyHttpProperties.getSocketChannel().getIpTos())
                     .childOption(ChannelOption.ALLOW_HALF_CLOSURE, nettyHttpProperties.getSocketChannel().isAllowHalfClosure())
-                    .childOption(ChannelOption.SO_RCVBUF, nettyHttpProperties.getSocketChannel().getSoRcvBuf())
                     .childOption(ChannelOption.SO_REUSEADDR, nettyHttpProperties.getSocketChannel().isSoReuseAddr())
                     // common parameters
                     .childOption(ChannelOption.CONNECT_TIMEOUT_MILLIS, nettyHttpProperties.getSocketChannel().getConnectTimeoutMillis())

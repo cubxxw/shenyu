@@ -34,6 +34,7 @@ import org.apache.shenyu.plugin.api.ShenyuPluginChain;
 import org.apache.shenyu.plugin.api.context.ShenyuContext;
 import org.apache.shenyu.plugin.api.result.ShenyuResultEnum;
 import org.apache.shenyu.plugin.api.result.ShenyuResultWrap;
+import org.apache.shenyu.plugin.api.utils.RequestUrlUtils;
 import org.apache.shenyu.plugin.api.utils.WebFluxResultUtils;
 import org.apache.shenyu.plugin.base.AbstractShenyuPlugin;
 import org.apache.shenyu.plugin.base.utils.CacheKeyUtils;
@@ -60,11 +61,16 @@ public class DividePlugin extends AbstractShenyuPlugin {
     private static final String SHORTEST_RESPONSE = "shortestResponse";
 
     private Long beginTime;
+    
+    @Override
+    protected String getRawPath(final ServerWebExchange exchange) {
+        return RequestUrlUtils.getRewrittenRawPath(exchange);
+    }
 
     @Override
     protected Mono<Void> doExecute(final ServerWebExchange exchange, final ShenyuPluginChain chain, final SelectorData selector, final RuleData rule) {
         ShenyuContext shenyuContext = exchange.getAttribute(Constants.CONTEXT);
-        assert shenyuContext != null;
+        assert Objects.nonNull(shenyuContext);
         DivideRuleHandle ruleHandle = buildRuleHandle(rule);
         if (ruleHandle.getHeaderMaxSize() > 0) {
             long headerSize = exchange.getRequest().getHeaders().values()

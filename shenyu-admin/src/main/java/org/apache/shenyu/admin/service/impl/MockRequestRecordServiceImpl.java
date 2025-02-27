@@ -31,6 +31,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
 import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -54,7 +55,7 @@ public class MockRequestRecordServiceImpl implements MockRequestRecordService {
     @Override
     public int delete(final String id) {
         MockRequestRecordDO mockRequestRecordDO = mockRequestRecordMapper.queryById(id);
-        if (mockRequestRecordDO == null) {
+        if (Objects.isNull(mockRequestRecordDO)) {
             return 0;
         }
         return mockRequestRecordMapper.deleteById(id);
@@ -72,7 +73,7 @@ public class MockRequestRecordServiceImpl implements MockRequestRecordService {
             return mockRequestRecordVO;
         }
         MockRequestRecordDO mockRequestRecordDO = mockRequestRecordMapper.queryById(id);
-        if (mockRequestRecordDO == null) {
+        if (Objects.isNull(mockRequestRecordDO)) {
             return mockRequestRecordVO;
         }
         return MockRequestRecordVO.buildMockRequestRecordVO(mockRequestRecordDO);
@@ -85,7 +86,7 @@ public class MockRequestRecordServiceImpl implements MockRequestRecordService {
     }
 
     private int update(final MockRequestRecordDTO mockRequestRecordDTO) {
-        if (mockRequestRecordDTO == null || mockRequestRecordDTO.getId() == null) {
+        if (Objects.isNull(mockRequestRecordDTO) || Objects.isNull(mockRequestRecordDTO.getId())) {
             return 0;
         }
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());
@@ -105,7 +106,7 @@ public class MockRequestRecordServiceImpl implements MockRequestRecordService {
     }
 
     private int create(final MockRequestRecordDTO mockRequestRecordDTO) {
-        if (mockRequestRecordDTO == null) {
+        if (Objects.isNull(mockRequestRecordDTO)) {
             return 0;
         }
         Timestamp currentTime = new Timestamp(System.currentTimeMillis());

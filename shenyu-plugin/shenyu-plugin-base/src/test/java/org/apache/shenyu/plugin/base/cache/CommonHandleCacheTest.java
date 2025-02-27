@@ -18,6 +18,7 @@
 package org.apache.shenyu.plugin.base.cache;
 
 import java.lang.reflect.Field;
+import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 
 import org.junit.jupiter.api.BeforeEach;
@@ -48,7 +49,7 @@ public final class CommonHandleCacheTest {
 
     @Test
     public void obtainHandle() {
-        assert null == commonHandleCache.obtainHandle(MOCK_KEY);
+        assert Objects.isNull(commonHandleCache.obtainHandle(MOCK_KEY));
         cachedMockMap.put(MOCK_KEY, MOCK_VALUE);
         assert MOCK_VALUE.equals(commonHandleCache.obtainHandle(MOCK_KEY));
     }
@@ -56,7 +57,7 @@ public final class CommonHandleCacheTest {
     @Test
     public void cachedHandle() {
         commonHandleCache.cachedHandle(null, MOCK_VALUE);
-        assert cachedMockMap.size() == 0;
+        assert cachedMockMap.isEmpty();
         commonHandleCache.cachedHandle(MOCK_KEY, MOCK_VALUE);
         assert MOCK_VALUE.equals(commonHandleCache.obtainHandle(MOCK_KEY));
     }
@@ -66,6 +67,6 @@ public final class CommonHandleCacheTest {
         commonHandleCache.cachedHandle(MOCK_KEY, MOCK_VALUE);
         assert cachedMockMap.size() == 1;
         commonHandleCache.removeHandle(MOCK_KEY);
-        assert cachedMockMap.size() == 0;
+        assert cachedMockMap.isEmpty();
     }
 }

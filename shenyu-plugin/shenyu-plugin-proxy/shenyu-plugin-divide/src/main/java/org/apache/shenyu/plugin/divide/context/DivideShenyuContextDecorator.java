@@ -23,18 +23,21 @@ import org.apache.shenyu.common.enums.RpcTypeEnum;
 import org.apache.shenyu.plugin.api.context.ShenyuContext;
 import org.apache.shenyu.plugin.api.context.ShenyuContextDecorator;
 
+import java.util.Optional;
+
 /**
  * The type Divide shenyu context decorator.
  */
 public class DivideShenyuContextDecorator implements ShenyuContextDecorator {
-    
+
     @Override
     public ShenyuContext decorator(final ShenyuContext shenyuContext, final MetaData metaData) {
         String path = shenyuContext.getPath();
         shenyuContext.setMethod(path);
         shenyuContext.setRealUrl(path);
         shenyuContext.setRpcType(RpcTypeEnum.HTTP.getName());
-        shenyuContext.setModule(String.format("%s-%s", PluginEnum.DIVIDE.getName(), shenyuContext.getRpcType()));
+        shenyuContext.setModule(Optional.ofNullable(metaData).map(MetaData::getAppName)
+                .orElse(String.format("%s-%s", PluginEnum.DIVIDE.getName(), shenyuContext.getRpcType())));
         return shenyuContext;
     }
 }

@@ -23,6 +23,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.dubbo.common.constants.CommonConstants;
 import org.apache.dubbo.config.ReferenceConfig;
 import org.apache.dubbo.rpc.RpcContext;
 import org.apache.dubbo.rpc.service.GenericException;
@@ -31,6 +32,7 @@ import org.apache.shenyu.common.constant.Constants;
 import org.apache.shenyu.common.dto.MetaData;
 import org.apache.shenyu.common.enums.ResultEnum;
 import org.apache.shenyu.common.exception.ShenyuException;
+import org.apache.shenyu.common.utils.JsonUtils;
 import org.apache.shenyu.common.utils.ParamCheckUtils;
 import org.apache.shenyu.plugin.apache.dubbo.cache.ApacheDubboConfigCache;
 import org.apache.shenyu.plugin.dubbo.common.param.DubboParamResolveService;
@@ -78,16 +80,19 @@ public class ApacheDubboProxyService {
         Pair<String[], Object[]> pair;
         if (StringUtils.isBlank(metaData.getParameterTypes()) || ParamCheckUtils.bodyIsEmpty(body)) {
             pair = new ImmutablePair<>(new String[]{}, new Object[]{});
+        } else if (CommonConstants.GENERIC_SERIALIZATION_PROTOBUF.equals(reference.getGeneric())) {
+            pair = new ImmutablePair<>(new String[]{metaData.getParameterTypes()}, new Object[]{JsonUtils.toJson(JsonUtils.jsonToMap(body))});
         } else {
             pair = dubboParamResolveService.buildParameter(body, metaData.getParameterTypes());
         }
         return Mono.fromFuture(invokeAsync(genericService, metaData.getMethodName(), pair.getLeft(), pair.getRight()).thenApply(ret -> {
-            if (Objects.isNull(ret)) {
-                ret = Constants.DUBBO_RPC_RESULT_EMPTY;
+            Object result = ret;
+            if (Objects.isNull(result)) {
+                result = Constants.DUBBO_RPC_RESULT_EMPTY;
             }
-            exchange.getAttributes().put(Constants.RPC_RESULT, ret);
+            exchange.getAttributes().put(Constants.RPC_RESULT, result);
             exchange.getAttributes().put(Constants.CLIENT_RESPONSE_RESULT_TYPE, ResultEnum.SUCCESS.getName());
-            return ret;
+            return result;
         })).onErrorMap(exception -> exception instanceof GenericException ? new ShenyuException(((GenericException) exception).getExceptionMessage()) : new ShenyuException(exception));
     }
     

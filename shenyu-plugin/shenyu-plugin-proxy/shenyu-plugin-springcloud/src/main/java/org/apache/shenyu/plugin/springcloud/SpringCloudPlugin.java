@@ -30,6 +30,7 @@ import org.apache.shenyu.plugin.api.ShenyuPluginChain;
 import org.apache.shenyu.plugin.api.context.ShenyuContext;
 import org.apache.shenyu.plugin.api.result.ShenyuResultEnum;
 import org.apache.shenyu.plugin.api.result.ShenyuResultWrap;
+import org.apache.shenyu.plugin.api.utils.RequestUrlUtils;
 import org.apache.shenyu.plugin.api.utils.WebFluxResultUtils;
 import org.apache.shenyu.plugin.base.AbstractShenyuPlugin;
 import org.apache.shenyu.plugin.base.utils.CacheKeyUtils;
@@ -47,8 +48,6 @@ import java.util.Objects;
 public class SpringCloudPlugin extends AbstractShenyuPlugin {
 
     private final ShenyuSpringCloudServiceChooser serviceChooser;
-    
-    private final SpringCloudRuleHandle defaultRuleHandle = new SpringCloudRuleHandle();
 
     /**
      * Instantiates a new Spring cloud plugin.
@@ -60,13 +59,18 @@ public class SpringCloudPlugin extends AbstractShenyuPlugin {
     }
 
     @Override
+    protected String getRawPath(final ServerWebExchange exchange) {
+        return RequestUrlUtils.getRewrittenRawPath(exchange);
+    }
+
+    @Override
     protected Mono<Void> doExecute(final ServerWebExchange exchange, final ShenyuPluginChain chain,
                                    final SelectorData selector, final RuleData rule) {
         if (Objects.isNull(rule)) {
             return Mono.empty();
         }
         final ShenyuContext shenyuContext = exchange.getAttribute(Constants.CONTEXT);
-        assert shenyuContext != null;
+        assert Objects.nonNull(shenyuContext);
         final SpringCloudSelectorHandle springCloudSelectorHandle = SpringCloudPluginDataHandler.SELECTOR_CACHED.get().obtainHandle(selector.getId());
         final SpringCloudRuleHandle ruleHandle = buildRuleHandle(rule);
         String serviceId = springCloudSelectorHandle.getServiceId();
@@ -81,6 +85,10 @@ public class SpringCloudPlugin extends AbstractShenyuPlugin {
             return WebFluxResultUtils.result(exchange, error);
         }
         final String domain = upstream.buildDomain();
+        //if rule data has path,its realUrl.
+        if (StringUtils.isNotBlank(ruleHandle.getPath())) {
+            shenyuContext.setRealUrl(ruleHandle.getPath());
+        }
         setDomain(URI.create(domain + shenyuContext.getRealUrl()), exchange);
         //set time out.
         exchange.getAttributes().put(Constants.HTTP_TIME_OUT, ruleHandle.getTimeout());
@@ -117,7 +125,7 @@ public class SpringCloudPlugin extends AbstractShenyuPlugin {
     protected Mono<Void> handleRuleIfNull(final String pluginName, final ServerWebExchange exchange, final ShenyuPluginChain chain) {
         return WebFluxResultUtils.noRuleResult(pluginName, exchange);
     }
-    
+
     private SpringCloudRuleHandle buildRuleHandle(final RuleData rule) {
         return SpringCloudPluginDataHandler.RULE_CACHED.get().obtainHandle(CacheKeyUtils.INST.getKey(rule));
     }

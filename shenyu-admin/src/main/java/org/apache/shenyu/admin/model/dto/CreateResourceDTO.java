@@ -17,8 +17,8 @@
 
 package org.apache.shenyu.admin.model.dto;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 
 /**
  * this is created resource Dto.
@@ -28,7 +28,6 @@ public class CreateResourceDTO {
     /**
      * resource parent key.
      */
-    @NotBlank
     private String parentId;
 
     /**

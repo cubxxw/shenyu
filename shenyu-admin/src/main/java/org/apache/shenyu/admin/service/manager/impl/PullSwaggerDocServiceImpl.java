@@ -19,14 +19,11 @@ package org.apache.shenyu.admin.service.manager.impl;
 
 import com.google.common.collect.Interner;
 import com.google.common.collect.Interners;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
-import javax.annotation.Resource;
+import okhttp3.Response;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
+import org.apache.http.HttpStatus;
 import org.apache.shenyu.admin.model.bean.UpstreamInstance;
 import org.apache.shenyu.admin.model.dto.TagDTO;
 import org.apache.shenyu.admin.model.entity.TagDO;
@@ -40,6 +37,15 @@ import org.apache.shenyu.common.utils.GsonUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.web.util.UriComponentsBuilder;
+
+import jakarta.annotation.Resource;
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.Optional;
+import java.util.Set;
 
 /**
  * ServiceDocManagerImpl.
@@ -50,7 +56,7 @@ public class PullSwaggerDocServiceImpl implements PullSwaggerDocService {
 
     private static final HttpUtils HTTP_UTILS = new HttpUtils();
 
-    private static final String SWAGGER_V2_PATH = "/v2/api-docs";
+    private static final String SWAGGER_V3_PATH = "/v3/api-docs";
 
     private static final long PULL_MIN_INTERVAL_TIME = 30 * 1000;
 
@@ -88,8 +94,15 @@ public class PullSwaggerDocServiceImpl implements PullSwaggerDocService {
         TagDO.TagExt tagExt = tagVO.getTagExt();
         long newRefreshTime = System.currentTimeMillis();
         String url = getSwaggerRequestUrl(instance);
-        try {
-            String body = HTTP_UTILS.get(url, Collections.EMPTY_MAP);
+        try (Response response = HTTP_UTILS.requestForResponse(url, Collections.EMPTY_MAP, Collections.EMPTY_MAP, HttpUtils.HTTPMethod.GET)) {
+            if (response.code() == HttpStatus.SC_NOT_FOUND) {
+                LOG.warn("add api document not found. clusterName={} url={}", instance.getClusterName(), url);
+                return;
+            }
+            if (response.code() != HttpStatus.SC_OK) {
+                throw new IOException(response.toString());
+            }
+            final String body = response.body().string();
             docManager.addDocInfo(
                 instance,
                 body,
@@ -101,7 +114,7 @@ public class PullSwaggerDocServiceImpl implements PullSwaggerDocService {
             );
             tagExt.setRefreshTime(newRefreshTime);
         } catch (Exception e) {
-            LOG.error("add api document fail. clusterName={} url={} error={}", instance.getClusterName(), url, e);
+            LOG.error("add api document fail. clusterName={} url={} error", instance.getClusterName(), url, e);
         } finally {
             tagExt.setDocLock(null);
             //Save the time of the last updated document and the newMd5 of apidoc.
@@ -163,8 +176,13 @@ public class PullSwaggerDocServiceImpl implements PullSwaggerDocService {
     }
 
     private String getSwaggerRequestUrl(final UpstreamInstance instance) {
-        return "http://" + instance.getIp() + ":" + instance.getPort() + SWAGGER_V2_PATH;
-
+        UriComponentsBuilder uriComponentsBuilder = UriComponentsBuilder.newInstance();
+        uriComponentsBuilder.scheme("http");
+        uriComponentsBuilder.host(instance.getIp());
+        uriComponentsBuilder.port(instance.getPort());
+        uriComponentsBuilder.path(Optional.ofNullable(instance.getContextPath()).orElse(""));
+        uriComponentsBuilder.path(SWAGGER_V3_PATH);
+        return uriComponentsBuilder.build().toUriString();
     }
 
 }

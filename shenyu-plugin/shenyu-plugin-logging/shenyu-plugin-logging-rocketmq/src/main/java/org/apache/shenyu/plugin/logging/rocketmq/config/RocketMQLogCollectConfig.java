@@ -183,7 +183,7 @@ public class RocketMQLogCollectConfig {
                 return Boolean.TRUE;
             }
 
-            if (o == null || getClass() != o.getClass()) {
+            if (Objects.isNull(o) || getClass() != o.getClass()) {
                 return Boolean.FALSE;
             }
 
@@ -196,8 +196,8 @@ public class RocketMQLogCollectConfig {
                     && Objects.equals(getSecretKey(), that.getSecretKey())
                     && Objects.equals(getSampleRate(), that.getSampleRate())
                     && Objects.equals(getBufferQueueSize(), that.getBufferQueueSize())
-                    && Objects.equals(getMaxResponseBody(), that.getMaxRequestBody())
-                    && Objects.equals(getMaxRequestBody(), that.getMaxResponseBody());
+                    && Objects.equals(getMaxRequestBody(), that.getMaxRequestBody())
+                    && Objects.equals(getMaxResponseBody(), that.getMaxResponseBody());
         }
 
         @Override

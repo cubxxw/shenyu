@@ -1,3 +1,309 @@
+## [v2.7.0]- 2024-12-23
+
+### ✨ New Features
+
+1. Upgrade dockerfile java runtime version 8 to 17
+2. Upgrade SpringBoot to 3.x
+3. Support ShenYu Admin Cluster
+4. Upgrade checkstyle plugin to 3.4.0
+5. Datasource support OceanBase
+6. Supports batch modification of selector/rule status
+7. Supports batch modification of PathAuth status 
+8. Upgrade apache dubbo version 
+9. Support `Contribute with Gitpod`
+10. Support Configs Export And Import 
+11. Add shenyu client heartbeat 
+12. Support Namespace 
+13. Support k8s dynamically scale 
+14. Invalidate Previous Tokens on New Login by Implementing Client ID Validation
+15. Support for gray release in divide-plugin
+16. Support Kubernetes registry
+17. Add shenyu-plugin-wasm
+
+### ⚡Enhancement
+
+1. Add rocketmq logging e2e test
+2. Enhance metrics-ratelimiter collect
+3. Enhance metrics collection for Sentinel, Resilience4j, and Hystrix
+4. Arrange sofa common tools dependencies
+5. Remove expired comments
+6. Add missing license
+7. Set up callback for send message on Kafka
+8. Use the loadbalance configuration from metadata for Dubbo
+9. Add non null validation for upstream which obtained from select
+10. Set timeout which from rule handle to dubbo rpc context
+11. Publish event when enable selector and rule
+12. Remove closed session from the NAMESPACE_SESSION_MAP
+13. Add test case for ShenyuClientURIExecutorSubscriber
+14. Add test case for `ShenyuClientIllegalArgumentException`
+15. Add test case for `ShenyuClientRegisterEventPublisher`
+16. Add test case for `ShenyuClientMetadataExecutorSubscriber`
+17. Add test case for `AbstractWasmPluginDataHandler`
+18. Add test case for `ShenyuClientRegisterRepositoryFactoryTest`
+19. Add test case for `AbstractWasmDiscoveryHandler`
+20. Upgrade sofa rpc version support
+21. Add header key of Sign plugin to CrossFilter config
+22. Encrypt the password
+23. Add AbstractShenyuWasmPluginTest
+24. RewritePlugin/ContextPathPlugin supports across application and plugin
+25. Remove duplicate path check
+26. Remove Alibaba Dubbo Support
+27. Support docker env set http path
+28. Add some code refactor improve
+29. Support get token from cookie\header\param
+30. Make the default value of ShenyuDubboService annotation equal to that of DubboService annotation
+31. Add db script into admin package
+32. Get rid of the dead code and add some improvements
+33. MotanServiceEventListenerTest case optimization
+34. Delete duplicate maven in shenyu-registry-eureka.xml
+35. Jwt dependency updated
+36. Print plugin execute time
+37. Discovery Local support upstream health check in Admin
+38. Close rule cache
+39. Less concurrency
+40. Optimize logic to avoid "orElse" execution，Update VersionTwoExtractor.java
+
+### ♻️Refactor
+
+1. Admin distributed lock by spring-integration-jdbc
+2. Refactor beanUtils
+3. Remove macos ci
+4. Update logging plugin DataBuffer deprecated method
+5. Modify e2e k8s to docker compose
+6. Migrate Admin swagger from springfox to springdoc
+7. Refactor springcloud plugin
+8. Refactor some code
+9. Delete SO_SNDBUF & SO_RCVBUF
+10. Refactor shenyu-sync-data-http : replace log %s -> {}.
+11. Optimizing the node type listener
+12. Refactor plugin lifecycle
+13. Adjust code order and remove invalid input parameters
+
+### 🐛Bug Fix
+
+1. Fix duplicate header for request plugin
+2. Fix proxy.selector and discovery not delete when delete divide selector
+3. Fix LoggingPlugin error log catch
+4. Fix logging plugin sample bug
+5. Fix memory overflow
+6. Fix rewrite integrated test
+7. Fix AbstractWasmPluginDataHandlerTest
+8. Fix missing PRIMARY KEY in sql-script/h2/schema.sql
+9. Fix Data dictionary page data sorting exception
+10. FIx doc error
+11. Resolve dashboard routing mismatch post context-path update
+12. Fix etcd sync config problem
+13. Fix consul sync problem
+14. Fix the bug of being unable to query without registration
+15. Fix Plugin Edit Page Issue by Correcting Plugin ID Query and Updating Data Type
+16. Fix class AdminConstants has word spelling error
+17. Fix shenyu-examples-springmvc start failed
+18. Fix dashboard menu children sort not working problem
+19. Fix ShenyuApacheDubboXmlProviderApplication config
+20. Fix data sync dataId for proxy selector and discovery is not unique
+21. Filter disable dict option
+22. Fix SpringCloudParser MetaData null data
+23. Fix client register validation
+24. Config dubbo serialize-check-status=DISABLE
+25. Fix example TestApacheDubboXmlApplication start failed
+26. Fix the nacos data sync model missing the contextPath configuration
+27. Fix SPI create non singleton objects in multi-threaded scenarios
+28. Fix BadSqlGrammarException
+29. Fix some word typo error
+30. Fix ListUtil->merge exception
+31. Fix metaData disable not filtered
+32. Fix divide logging request method
+33. Fix e2e chunk header error
+34. Fix cookie error and sql check
+35. Fixed NPE issue
+36. Fix Invalid path error
+37. Fix hot load issue
+38. Fix e2e test case can not run wget command
+39. Fix fallback issue
+40. Fix some ci bugs
+41. Resolve the sql error in rule-sqlmap.xml
+42. Fix readYmlBuildRepository NPE
+43. Fix nacos cannot be registered in the Shenyu-examples-SpringCloud project
+44. Fix springCloud ruleData path setting didn't used
+45. Fix shenyu-plugin-logging-elasticsearch : modify setIndexName of ElasticSearchLogConfig
+46. Fix Not first offline from the gateway when stopping service
+47. Fix k8s liveness probe can not run wget command error
+48. Fix AbstractNodeDataSyncService load discoverUpstream on startup
+
+
+## 2.6.1
+
+### New Features
+
+1. Add dubbo annotation analysis for shenyu ingress controller
+2. Support plugin lifecycle
+3. Support shenyu-sdk-client by openFeign
+4. Adding a Motan plugin and Spring Cloud to shenyu ingress-controller
+5. Support alert notice
+6. Shenyu client add discovery register center
+7. Add shenyu  context-path plugin ingress controller
+8. Add shenyu grpc plugin ingress controller
+9. Add shenyu sofa ingress controller
+10. Add nacos, etcd, eureka as discovery service
+11. Add new plugin: basic-auth
+12. Add shenyu logging-rabbitmq plugin
+13. Binding selector by shenyu-discovery
+
+### API Changes
+
+1. Refactor shenyu sync data data structure
+
+   ```
+   plugin.list ["plugin.sign", "plugin.dubbo", "plugin.pluginName"]
+   -> plugin.sign
+   -> plugin.dubbo
+   -> plugin.pluginName
+   
+   examples data:
+   selector.key1.list ["selector.key1.value1", "selector.key1.value2", "selector.key1.value3"]
+   -> selector.key1.value1
+   -> selector.key1.value2
+   -> selector.key1.value3
+   
+   selector.key2.list ["selector.key2.value1", "selector.key2.value2", "selector.key2.value3"]
+   -> selector.key2.value4
+   -> selector.key2.value5
+   -> selector.key2.value6
+   ```
+
+2. Support NettyClient as default httpclient
+
+3. Refactor admin-listener to support admin data sync
+
+4. Remove brpc supports including brpc plugin, brpc example, brpc integrated test
+
+5. Remove Apollo dependency to support Java 17(add jar by yourself)
+
+6. Remove shenyu middleware register client
+
+### Enhancement
+
+1. Add test cases for shenyu model event
+2. Add selector event test cases
+3. Add motan e2e test cases
+4. Support the motan protocol
+5. Add Grpc e2e test cases
+6. Bump apache-rat-plugin to 0.15
+7. Support String isBlank in match condition
+8. Clickhouse support ttl field
+9. Support HttpUtils log level
+10. Add unit test for Ingress Reconciler
+11. Support checksum when packing distribution
+12. Implement zero-copy in TCP plugin
+13. shenyu-client-springmvc supports default appName and contextPath
+14. Add sdk-feign example and integrated test case
+15. ElasticSearch logging support for custom index
+16. Enhance grpc plugin to support shenyu loadbalancer
+17. Support http2 upstream server
+18. Enhance Dubbo plugin support shenyu loadbalancer
+19. Add ingress-controller integration springCloud test case
+20. Add WebSocket plugin proxy ping configuration
+21. Add ingress-controller integration websocket test
+22. RewritePlugin supports percentage
+23. Admin use discovery config init discovery-service
+24. Divide plugin adapt shenyu discovery
+25. Alert report support config admin cluster multi servers
+26. WebSocket plugin adapt shenyu discovery
+27. Register service instance into discovery
+28. Admin adapter discovery local mode
+29. Add test case for ShenYu sdk core
+30. Add unit test for shenyu-discovery
+31. Add opengauss e2e test case
+32. Add upload plugin jar size limit
+33. Add unit test for shenyu-client-spring-websocket
+34. Upgrade Shiro version to a secure version(1.18.0)
+35. Update license and upgrade springboot(2.7.17)
+36. Send alarm message when gateway global error happen
+37. Add EurekaDiscoveryService unit test
+
+### Refactor
+
+1. Refactor 2.6.1 version(pom.xml)
+2. Simplify Map operations by computeIfAbsent
+3. Refactor polaris test cases
+4. Migrate Maven Wrapper from io.takari to official release
+5. Use compiled Pattern in WebClientMessageWriter
+6. Refactor HttpUtils request method
+7. Update github action version
+8. Refactor Sync data center abstract template method
+9. Update MenuProject, MenuModule, MenuDocItem to VO
+10. Unified dubbo version
+11. Refactor Httpclient's package
+12. Refactor github ci action cache
+13. Refactor motan pojo as rpc method parameter
+14. Upgrade Kafka client version to 3.4.0
+15. Migrate Admin swagger from springfox to springdoc
+16. Upgrade Dubbo version to 3.2.5 and refactor some methods
+17. Refactor AbstractShenyuSdkClient getOrDefault method
+18. Refactor http client properties
+19. Refactor webcliet plugin implement
+20. Upgrade com.google.guava:guava to 32.0.0-jre
+21. support k8s as e2e test case enviroment
+22. Refactor @Restapi as rest api request mapping
+23. String concatenation recommended using StringBuilder
+24. Set the netty allocator to unpooled
+25. Refactor startup banner
+26. Removing duplicate code and extracting the same code for common use
+27. Standardized null detection coding
+28. Refactor log plugin selector handler
+29. Refactor plugin classloader
+30. Refactor Logging plugin to support sampleRate at plugin level
+31. Refactor context-path register to avoid repeat context-path(use select for update)
+
+### Bug Fix
+
+1. Avoid the permanent overhead of creating TimeoutException
+2. Fix example module main class path
+3. Fix plugin page sorting bug
+4. Update Makefile SNAPSHOT version
+5. Fix typo in RELEASE-NOTES.md
+6. Fix the error package name of shenyu-example
+7. Fix password rules, add special characters '#' and '.'
+8. Fix health check for zookeeper:3.8.0 in e2e
+9. Fix unstable ci check
+10. Add e2e WaitForHelper exception log
+11. Fix springcloud plugin can't get scheme
+12. Fix javadoc build errors
+13. Fix the wrong request type in HttpUtils
+14. Fix  userId can not update success when update auth
+15. Fix thread leak in TCP plugin
+16. Format "Quick start" part in shenyu-integrated-test/README
+17. Fix SQL script error
+18. Fix uri plugin path error and change path to rawpath
+19. Fix WebSocket plugin to support rewrite plugin
+20. Fix indexName not working for es-logging
+21. Fix the error of context-path plugin
+22. Fix shenyu-admin cpu surge
+23. Fix alert localDateTime format problem
+24. shenyu-client persist ApiDoc error retry
+25. Fix applicationContextAware initialization too late
+26. Fix duplicate response header
+27. Set the maximum time to wait for the k8s cluster to start up
+28. Fix type for status field for clickhouse log plugin
+29. Fix response plugin memory leak
+30. Fix dataType contrast error
+31. Fix http data sync error
+32. Fix spelling error
+33. Fix shenyu-dubbo register status
+34. Fix buildDiscoveryUpstreamPath causing multiple `/`
+35. Fix bug when registering with Eureka through EurekaInstanceRegisterRepository#persistInstance
+36. Fix AbstractLogPluginDataHandler hashcode error
+37. Fix Ratelimit plugin key error in redis cluster mode
+38. Fix multi shenyu client register repeat context path
+39. Fix shenyu can't load ext plugin after close the plugin
+40. Fix upload plugin jar bug in shenyu admin
+41. Fix plugin can not load resource path file
+42. Fix Admin script to show dictionary code
+43. Fix authorization conflict in sign plugin
+44. Fix sign plugin context path match error
+
+
+
 ## 2.6.0
 
 ### New Features
@@ -93,7 +399,7 @@
 17. Refactor the custom plugin support hot load
 18. Refactor ShenyuWebHandler putPlugin methods
 19. Refactor Shenyu webfilter
-20. Reactor oauth2 plguin
+20. Reactor oauth2 plugin
 21. Refactor shenyu selector data continued field
 22. Refactor shenyu selector and rule cache
 23. Removed unused generics in shenyu client

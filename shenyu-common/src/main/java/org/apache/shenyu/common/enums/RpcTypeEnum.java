@@ -69,9 +69,9 @@ public enum RpcTypeEnum {
     GRPC("grpc", true),
 
     /**
-     * brpc.
+     * ai.
      */
-    BRPC("brpc", true);
+    AI("ai", true);
 
     private final String name;
 
